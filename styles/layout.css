@@ -23,6 +23,9 @@
 .today { color: var(--muted); font-size: 11px; }
 .user-chip { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; }
 .user-chip .avatar { width: 30px; height: 30px; }
+.logout-button { flex: 0 0 auto; min-height: 34px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: white; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.logout-button:hover { background: #f2f6f3; }
+.logout-button span:first-child { color: var(--forest-2); font-size: 15px; }
 .page { max-width: 1180px; margin: 0 auto; padding: 36px 38px 60px; }
 .page-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 25px; }
 .eyebrow { color: #49806e; font-size: 10px; font-weight: 800; letter-spacing: .12em; margin-bottom: 8px; }
@@ -51,6 +54,8 @@ h1 { font-size: clamp(23px, 3vw, 30px); letter-spacing: 0; line-height: 1.35; ma
   .today { display: none; }
   .user-chip { font-size: 0; }
   .user-chip .avatar { font-size: 11px; }
+  .top-right { gap: 7px; }
+  .logout-button { min-height: 32px; padding-inline: 7px; font-size: 10px; }
   .page { padding: 25px 16px 30px; }
   .page-heading { align-items: start; margin-bottom: 18px; }
   .page-heading .button { flex: 0 0 auto; min-height: 36px; padding: 0 10px; font-size: 10px; white-space: nowrap; }

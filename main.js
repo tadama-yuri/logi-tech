@@ -56,6 +56,13 @@ function render() {
   document.querySelectorAll('[data-screen]').forEach((button) => {
     button.addEventListener('click', () => navigate(button.dataset.screen));
   });
+  document.querySelectorAll('[data-logout]').forEach((button) => {
+    button.addEventListener('click', () => {
+      currentUser = null;
+      currentScreen = 'login';
+      render();
+    });
+  });
   screen.bind(context);
 }
 
