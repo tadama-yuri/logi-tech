@@ -1,0 +1,15 @@
+<div class="login-wrap">
+  <section class="login-art">
+    <div class="login-logo"><div class="brand-mark">走</div><div><div class="brand-name">走録</div><div class="brand-caption">DRIVER WORK ANALYTICS</div></div></div>
+    <div class="login-copy"><div class="eyebrow">DAILY OPERATIONS, CLEARLY.</div><h1>走る時間を、<br>次の改善へ。</h1><p>勤務実績と荷待ち時間をひとつに。現場の記録から、運行の見え方を変えていきます。</p></div>
+    <div class="login-stats"><div class="login-stat"><strong>{{RECORD_COUNT}}</strong><span>保存済み記録</span></div><div class="login-stat"><strong>{{WAIT_HOURS}}h</strong><span>本日の荷待ち</span></div></div>
+  </section>
+  <section class="login-form-side">
+    <form class="login-form" id="login-form"><div class="eyebrow">WELCOME BACK</div><h2>チームにログイン</h2><p>試作環境ではユーザー選択でログインできます。</p>
+      <div class="field"><label for="login-user">ユーザー</label><select id="login-user" name="userId" required>{{USER_OPTIONS}}</select></div>
+      <div class="field"><label for="login-password">パスワード</label><input id="login-password" type="password" placeholder="試作では入力不要" autocomplete="current-password"></div>
+      <button type="submit" class="button primary">ログイン <span aria-hidden="true">→</span></button>
+      <div class="demo-note">これは画面確認用のデモです。入力したパスワードは認証されません。</div>
+    </form>
+  </section>
+</div>

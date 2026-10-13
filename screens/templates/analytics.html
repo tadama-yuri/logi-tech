@@ -1,0 +1,14 @@
+<section class="page fade-in">
+  <div class="page-heading"><div><div class="eyebrow">DAILY OVERVIEW</div><h1>稼働分析</h1><p class="subtitle">勤務実績と荷待ち時間から、今日の稼働状況を確認します。</p></div><button class="button primary" data-screen="entry"><span aria-hidden="true">＋</span> 実績を入力</button></div>
+  <div class="grid metrics">
+    <article class="metric-card"><div class="metric-top"><span>本日の実働</span><i class="metric-dot"></i></div><div class="metric-value">{{WORK_HOURS}}<span class="metric-unit">h</span></div><div class="metric-foot">{{TODAY_RECORDS}} 件の勤務記録</div></article>
+    <article class="metric-card wait"><div class="metric-top"><span>本日の荷待ち</span><i class="metric-dot"></i></div><div class="metric-value">{{WAIT_HOURS}}<span class="metric-unit">h</span></div><div class="metric-foot">実働時間に占める待機を集計</div></article>
+    <article class="metric-card rate"><div class="metric-top"><span>本日の稼働率</span><i class="metric-dot"></i></div><div class="metric-value">{{RATE}}<span class="metric-unit">%</span></div><div class="metric-foot">（実働 − 荷待ち）÷ 実働</div></article>
+    <article class="metric-card people"><div class="metric-top"><span>記録ドライバー</span><i class="metric-dot"></i></div><div class="metric-value">{{DRIVER_COUNT}}<span class="metric-unit">名</span></div><div class="metric-foot">登録ユーザー {{USER_COUNT}} 名</div></article>
+  </div>
+  <div class="grid content-grid">
+    <article class="panel"><div class="panel-heading"><h2 class="panel-title">ドライバー別 稼働率</h2><span class="panel-meta">本日の記録</span></div>{{BAR_CONTENT}}</article>
+    <article class="panel"><div class="panel-heading"><h2 class="panel-title">最近の記録</h2><button class="button ghost small" data-screen="records">一覧を見る →</button></div><div class="activity-list">{{RECENT_CONTENT}}</div></article>
+  </div>
+  <div class="panel summary-panel"><div class="panel-heading"><h2 class="panel-title">全期間サマリー</h2><span class="panel-meta">保存済み全 {{TOTAL_RECORDS}} 件 · 実働 {{TOTAL_WORK}}h · 荷待ち {{TOTAL_WAIT}}h</span></div><div class="panel-meta">集計式: 稼働率 = (実働時間 − 荷待ち時間) ÷ 実働時間</div></div>
+</section>

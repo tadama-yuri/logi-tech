@@ -1,0 +1,25 @@
+.form-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); align-items: start; gap: 17px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.field { display: grid; gap: 7px; }
+.field.full { grid-column: 1/-1; }
+.field label { color: #58645f; font-size: 11px; font-weight: 700; }
+.field input, .field select, .field textarea { width: 100%; min-height: 42px; border: 1px solid #dce4df; background: #fff; border-radius: 5px; padding: 10px 11px; color: var(--ink); font-size: 12px; }
+.field textarea { min-height: 80px; resize: vertical; }
+.field-hint { font-size: 10px; color: var(--muted); }
+.calc-box { background: #f3f7f4; border-radius: 7px; padding: 17px; }
+.calc-title { font-size: 11px; font-weight: 800; margin-bottom: 13px; }
+.calc-row { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #e3eae5; font-size: 11px; color: var(--muted); }
+.calc-row strong { color: var(--ink); font: 500 12px 'DM Mono', monospace; }
+.calc-row.total strong { color: var(--forest-2); }
+.form-actions { display: flex; justify-content: end; gap: 9px; margin-top: 18px; }
+.calc-help { line-height: 1.8; margin-top: 14px; }
+@media (max-width: 700px) {
+  .form-layout { grid-template-columns: 1fr; gap: 10px; }
+  .form-grid { gap: 12px 9px; }
+  .field label { font-size: 10px; }
+  .field input, .field select, .field textarea { font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: auto; }
+}

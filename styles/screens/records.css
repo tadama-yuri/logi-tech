@@ -1,0 +1,13 @@
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; min-width: 650px; }
+th { color: var(--muted); font-size: 10px; font-weight: 700; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { font-size: 11px; padding: 13px 12px; border-bottom: 1px solid #edf0ee; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+.table-person { font-weight: 700; }
+.filter-row { display: flex; gap: 9px; align-items: center; margin-bottom: 15px; }
+.filter-row input, .filter-row select { min-height: 36px; border: 1px solid var(--line); border-radius: 5px; background: white; padding: 0 10px; font-size: 11px; color: var(--ink); }
+.filter-row input { flex: 1; min-width: 120px; }
+@media (max-width: 700px) {
+  .filter-row { flex-wrap: wrap; }
+  .filter-row input { flex-basis: 100%; }
+}

@@ -1,0 +1,15 @@
+<section class="page fade-in">
+  <div class="page-heading"><div><div class="eyebrow">WORK LOG</div><h1>勤務実績を入力</h1><p class="subtitle">1日の勤務と荷待ち時間を記録します。終了が開始より早い場合は翌日として計算します。</p></div></div>
+  <form id="record-form" class="form-layout">
+    <article class="panel"><div class="panel-heading"><h2 class="panel-title">勤務情報</h2><span class="panel-meta">* 必須</span></div><div class="form-grid">
+      <div class="field"><label for="record-date">勤務日 *</label><input id="record-date" name="date" type="date" value="{{TODAY}}" required></div>
+      <div class="field"><label for="driver-id">ドライバー *</label><select id="driver-id" name="userId" required>{{DRIVER_OPTIONS}}</select></div>
+      <div class="field"><label for="start-time">勤務開始 *</label><input id="start-time" name="start" type="time" value="08:00" required></div>
+      <div class="field"><label for="end-time">勤務終了 *</label><input id="end-time" name="end" type="time" value="17:00" required></div>
+      <div class="field"><label for="break-minutes">休憩時間（分）</label><input id="break-minutes" name="breakMinutes" type="number" min="0" max="1440" step="5" value="60"><span class="field-hint">勤務時間から差し引きます</span></div>
+      <div class="field"><label for="wait-minutes">荷待ち時間（分） *</label><input id="wait-minutes" name="waitMinutes" type="number" min="0" max="1440" step="5" value="60" required><span class="field-hint">実働時間の内数として入力</span></div>
+      <div class="field full"><label for="record-note">メモ</label><textarea id="record-note" name="note" maxlength="300" placeholder="運行や荷待ち場所など"></textarea></div>
+    </div><div class="form-actions"><button class="button ghost" type="reset">入力をリセット</button><button class="button primary" type="submit">記録を保存</button></div></article>
+    <aside class="panel"><div class="panel-heading"><h2 class="panel-title">入力内容の計算</h2><span class="badge">自動計算</span></div><div class="calc-box"><div class="calc-title">今日の勤務見込み</div><div class="calc-row"><span>拘束時間</span><strong id="calc-span">9.0 h</strong></div><div class="calc-row"><span>休憩</span><strong id="calc-break">1.0 h</strong></div><div class="calc-row"><span>実働時間</span><strong id="calc-work">8.0 h</strong></div><div class="calc-row"><span>荷待ち時間</span><strong id="calc-wait">1.0 h</strong></div><div class="calc-row total"><span>稼働率</span><strong id="calc-rate">87.5%</strong></div></div><p class="field-hint calc-help">稼働率 =（実働時間 − 荷待ち時間）÷ 実働時間。荷待ち時間は休憩を除いた実働時間を超えて登録できません。</p></aside>
+  </form>
+</section>

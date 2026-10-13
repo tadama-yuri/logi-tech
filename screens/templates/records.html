@@ -1,0 +1,6 @@
+<section class="page fade-in">
+  <div class="page-heading"><div><div class="eyebrow">WORK RECORDS</div><h1>入力データ確認</h1><p class="subtitle">保存済みの勤務実績を確認できます。削除した記録は元に戻せません。</p></div><button class="button primary" data-screen="entry"><span aria-hidden="true">＋</span> 実績を入力</button></div>
+  <article class="panel"><div class="filter-row"><input id="record-search" type="search" placeholder="ドライバー名で検索" aria-label="ドライバー名で検索"><select id="date-filter" aria-label="日付で絞り込み"><option value="all">すべての日付</option><option value="today">今日</option></select><span class="panel-meta" id="record-count">{{RECORD_COUNT}} 件</span></div>
+    <div class="table-wrap"><table><thead><tr><th>勤務日</th><th>ドライバー</th><th>勤務時間</th><th>実働</th><th>荷待ち</th><th>稼働率</th><th>操作</th></tr></thead><tbody>{{RECORD_ROWS}}</tbody></table>{{EMPTY_RECORDS}}<div class="empty" id="filter-empty" hidden>条件に一致する記録がありません</div></div>
+  </article>
+</section>
