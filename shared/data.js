@@ -17,6 +17,7 @@ yesterday.setDate(yesterday.getDate() - 1);
 
 const sampleData = {
   users: DEFAULT_USERS,
+  activeShifts: [],
   records: [
     { id: 'r1', userId: 'u2', date: today, start: '07:30', end: '17:15', breakMinutes: 60, waitMinutes: 95, note: '午前便・午後便', createdAt: Date.now() - 1000 },
     { id: 'r2', userId: 'u3', date: today, start: '08:00', end: '18:30', breakMinutes: 75, waitMinutes: 140, note: 'センターで荷待ち', createdAt: Date.now() - 2000 },
@@ -35,7 +36,10 @@ export const NAV_ITEMS = [
 export function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
-    if (saved && Array.isArray(saved.users) && Array.isArray(saved.records)) return saved;
+    if (saved && Array.isArray(saved.users) && Array.isArray(saved.records)) {
+      saved.activeShifts = Array.isArray(saved.activeShifts) ? saved.activeShifts : [];
+      return saved;
+    }
   } catch (error) {
     console.warn('保存データを読み込めませんでした。', error);
   }

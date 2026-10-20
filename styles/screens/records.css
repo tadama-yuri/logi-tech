@@ -1,13 +1,33 @@
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; min-width: 650px; }
 th { color: var(--muted); font-size: 10px; font-weight: 700; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-td { font-size: 11px; padding: 13px 12px; border-bottom: 1px solid #edf0ee; white-space: nowrap; }
+td { font-size: 11px; padding: 13px 12px; border-bottom: 1px solid #edf0f5; white-space: nowrap; }
 tbody tr:last-child td { border-bottom: 0; }
 .table-person { font-weight: 700; }
+.record-actions { display: flex; align-items: center; gap: 6px; }
 .filter-row { display: flex; gap: 9px; align-items: center; margin-bottom: 15px; }
 .filter-row input, .filter-row select { min-height: 36px; border: 1px solid var(--line); border-radius: 5px; background: white; padding: 0 10px; font-size: 11px; color: var(--ink); }
 .filter-row input { flex: 1; min-width: 120px; }
+.record-edit-dialog { width: min(600px, calc(100% - 32px)); max-height: min(88vh, 760px); padding: 24px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); box-shadow: 0 24px 70px rgba(23,36,58,.24); }
+.record-edit-dialog::backdrop { background: rgba(19,30,48,.48); backdrop-filter: blur(3px); }
+.edit-dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: 14px; margin-bottom: 22px; }
+.edit-dialog-heading .eyebrow { margin-bottom: 5px; }
+.edit-dialog-heading h2 { margin: 0; font-size: 19px; }
+.edit-dialog-heading .subtitle { margin-top: 5px; }
+.dialog-close { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background: white; color: var(--muted); font-size: 21px; line-height: 1; }
+.edit-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.edit-fields .field label { color: #596579; font-size: 11px; font-weight: 700; }
+.edit-fields input, .edit-fields textarea { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); font: inherit; font-size: 12px; }
+.edit-fields textarea { min-height: 76px; resize: vertical; }
+.edit-note-field { grid-column: 1/-1; }
+.record-edit-dialog .form-actions { margin-top: 20px; }
 @media (max-width: 700px) {
   .filter-row { flex-wrap: wrap; }
   .filter-row input { flex-basis: 100%; }
+  .record-edit-dialog { padding: 18px; }
+  .edit-fields { gap: 11px; }
+}
+@media (max-width: 380px) {
+  .edit-fields { grid-template-columns: 1fr; }
+  .edit-note-field { grid-column: auto; }
 }

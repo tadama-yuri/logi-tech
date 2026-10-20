@@ -22,6 +22,10 @@ const screens = {
 
 function navigate(screen) {
   if (!screens[screen]) return;
+  if (screen === 'admin' && currentUser?.role !== '運行管理者') {
+    showToast('ユーザー管理は運行管理者のみ利用できます');
+    return;
+  }
   currentScreen = screen;
   render();
 }
@@ -41,6 +45,7 @@ function render() {
     return;
   }
 
+  if (currentScreen === 'admin' && currentUser.role !== '運行管理者') currentScreen = 'analytics';
   const screen = screens[currentScreen] || screens.analytics;
   const context = {
     state,
