@@ -17,6 +17,9 @@
 .side-user-name { font-size: 12px; font-weight: 700; }
 .side-user-role { font-size: 10px; color: #a8b5c9; margin-top: 2px; }
 .main { min-width: 0; }
+.shift-reminder { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 38px 0; padding: 11px 14px; border: 1px solid #f0d39d; border-radius: 6px; background: #fff8e8; color: #785315; font-size: 12px; }
+.shift-reminder[hidden] { display: none; }
+.shift-reminder .button { flex: 0 0 auto; }
 .topbar { min-height: 74px; padding: 0 38px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.86); }
 .breadcrumb { font-size: 12px; color: var(--muted); }
 .top-right { display: flex; gap: 14px; align-items: center; }
@@ -50,6 +53,7 @@ h1 { font-size: clamp(23px, 3vw, 30px); letter-spacing: 0; line-height: 1.35; ma
   .app-shell { display: block; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .sidebar { display: none; }
   .topbar { min-height: 58px; padding: 0 18px; }
+  .shift-reminder { align-items: start; flex-direction: column; margin: 10px 16px 0; font-size: 11px; }
   .topbar .breadcrumb { font-size: 11px; }
   .today { display: none; }
   .user-chip { font-size: 0; }

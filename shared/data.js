@@ -38,6 +38,7 @@ export function loadState() {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved && Array.isArray(saved.users) && Array.isArray(saved.records)) {
       saved.activeShifts = Array.isArray(saved.activeShifts) ? saved.activeShifts : [];
+      saved.auditLog = Array.isArray(saved.auditLog) ? saved.auditLog : [];
       return saved;
     }
   } catch (error) {
@@ -96,6 +97,34 @@ export function totals(records) {
     result.people.add(record.userId);
     return result;
   }, { work: 0, wait: 0, active: 0, people: new Set() });
+}
+
+export function logRecordChange(state, record, actor, action, { before = null, details = '', deleted = false } = {}) {
+  state.auditLog ||= [];
+  const snapshot = (item) => item && ({
+    date: item.date,
+    userId: item.userId,
+    start: item.start,
+    end: item.end,
+    breakMinutes: Number(item.breakMinutes || 0),
+    waitMinutes: Number(item.waitMinutes || 0),
+    note: item.note || '',
+    status: item.status || 'pending',
+    reviewNote: item.reviewNote || ''
+  });
+  state.auditLog.unshift({
+    id: crypto.randomUUID(),
+    recordId: record.id,
+    recordUserId: record.userId,
+    recordUserName: userById(state, record.userId)?.name || '削除済みユーザー',
+    actorId: actor.id,
+    actorName: actor.name,
+    action,
+    details,
+    before: snapshot(before),
+    after: deleted ? null : snapshot(record),
+    createdAt: new Date().toISOString()
+  });
 }
 
 export function showToast(message) {

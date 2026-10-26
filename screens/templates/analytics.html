@@ -4,7 +4,7 @@
     <article class="metric-card"><div class="metric-top"><span>本日の実働</span><i class="metric-dot"></i></div><div class="metric-value">{{WORK_HOURS}}<span class="metric-unit">h</span></div><div class="metric-foot">{{TODAY_RECORDS}} 件の勤務記録</div></article>
     <article class="metric-card wait"><div class="metric-top"><span>本日の荷待ち</span><i class="metric-dot"></i></div><div class="metric-value">{{WAIT_HOURS}}<span class="metric-unit">h</span></div><div class="metric-foot">実働時間に占める待機を集計</div></article>
     <article class="metric-card rate"><div class="metric-top"><span>本日の稼働率</span><i class="metric-dot"></i></div><div class="metric-value">{{RATE}}<span class="metric-unit">%</span></div><div class="metric-foot">（実働 − 荷待ち）÷ 実働</div></article>
-    <article class="metric-card people"><div class="metric-top"><span>記録ドライバー</span><i class="metric-dot"></i></div><div class="metric-value">{{DRIVER_COUNT}}<span class="metric-unit">名</span></div><div class="metric-foot">登録ユーザー {{USER_COUNT}} 名</div></article>
+    <article class="metric-card people"><div class="metric-top"><span>本日の稼働ドライバー数</span><i class="metric-dot"></i></div><div class="metric-value">{{DRIVER_COUNT}}<span class="metric-unit">名</span></div><div class="metric-foot">本日の勤務記録があるドライバー（登録ユーザー {{USER_COUNT}} 名）</div></article>
   </div>
   <div class="grid content-grid">
     <article class="panel"><div class="panel-heading"><h2 class="panel-title">ドライバー別 稼働率</h2><span class="panel-meta">本日の記録</span></div>{{BAR_CONTENT}}</article>

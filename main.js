@@ -57,7 +57,7 @@ function render() {
     persist: () => persist(state),
     showToast
   };
-  root.innerHTML = appFrame(screen.render(context), { currentScreen, currentUser, templates });
+  root.innerHTML = appFrame(screen.render(context), { currentScreen, currentUser, templates, state });
   document.querySelectorAll('[data-screen]').forEach((button) => {
     button.addEventListener('click', () => navigate(button.dataset.screen));
   });

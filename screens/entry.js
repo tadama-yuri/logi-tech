@@ -1,5 +1,6 @@
-import { escapeHtml, formatHours, localDateString, minutesBetween, recordStats } from '../shared/data.js';
+import { escapeHtml, formatHours, localDateString, logRecordChange, minutesBetween, recordStats } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
+import { refreshShiftReminder } from '../shared/layout.js';
 
 export function renderEntry({ state, currentUser, today, templates }) {
   const defaultDriver = currentUser.role === 'ドライバー' ? currentUser.id : (state.users.find((user) => user.role === 'ドライバー')?.id || '');
@@ -41,7 +42,20 @@ function trackerStatus(shift, now) {
   return `<div class="tracker-running"><div class="tracker-summary"><span class="tracker-state">${activityLabel}</span><span>開始 ${escapeHtml(shift.start)}</span><span>休憩 ${formatHours(breakMinutes)} h</span><span>荷待ち ${formatHours(waitMinutes)} h</span></div><div class="tracker-actions">${activityAction}<button class="button tracker-finish" data-tracker-action="finish">勤務終了</button></div></div>`;
 }
 
-export function bindEntry({ state, persist, navigate, showToast }) {
+function duplicateCount(state, entry) {
+  return state.records.filter((record) => record.userId === entry.userId && record.date === entry.date).length;
+}
+
+function confirmRecordSave(entry, stats, duplicates, driverName) {
+  const duplicateWarning = duplicates
+    ? `\n\n注意: 同じドライバー・勤務日に ${duplicates} 件の記録があります。`
+    : '';
+  return window.confirm(
+    `この内容で勤務記録を保存しますか？\nドライバー: ${driverName}\n勤務日: ${entry.date}\n勤務時間: ${entry.start}〜${entry.end}\n実働: ${formatHours(stats.work)} 時間\n休憩: ${formatHours(entry.breakMinutes)} 時間\n荷待ち: ${formatHours(entry.waitMinutes)} 時間\n\n保存後は運行管理者の承認待ちになります。${duplicateWarning}`
+  );
+}
+
+export function bindEntry({ state, currentUser, persist, navigate, showToast }) {
   const trackerDriver = document.getElementById('tracker-driver');
   const trackerStatusElement = document.getElementById('tracker-status');
   const updateTracker = () => {
@@ -81,6 +95,7 @@ export function bindEntry({ state, persist, navigate, showToast }) {
       state.activeShifts.push(shift);
       persist();
       updateTracker();
+      refreshShiftReminder(state, currentUser);
       showToast('勤務を開始しました');
       return;
     }
@@ -136,10 +151,14 @@ export function bindEntry({ state, persist, navigate, showToast }) {
         return;
       }
 
-      state.records.push({ ...entry, id: crypto.randomUUID(), createdAt: now.getTime() });
+      if (!confirmRecordSave(entry, stats, duplicateCount(state, entry), state.users.find((user) => user.id === userId).name)) return;
+      const record = { ...entry, id: crypto.randomUUID(), createdAt: now.getTime(), status: 'pending' };
+      state.records.push(record);
+      logRecordChange(state, record, currentUser, '勤務記録を作成');
       state.activeShifts = state.activeShifts.filter((activeShift) => activeShift.userId !== userId);
       persist();
       updateTracker();
+      refreshShiftReminder(state, currentUser);
       showToast('勤務実績を保存しました');
       navigate('records');
     }
@@ -173,7 +192,10 @@ export function bindEntry({ state, persist, navigate, showToast }) {
     if (!entry.userId || !state.users.some((user) => user.id === entry.userId)) return showToast('ドライバーを選択してください');
     if (stats.span <= 0 || stats.work <= 0) return showToast('勤務時間と休憩時間を確認してください');
     if (entry.waitMinutes > stats.work) return showToast('荷待ち時間は実働時間以内で入力してください');
-    state.records.push({ ...entry, id: crypto.randomUUID(), createdAt: Date.now() });
+    if (!confirmRecordSave(entry, stats, duplicateCount(state, entry), state.users.find((user) => user.id === entry.userId).name)) return;
+    const record = { ...entry, id: crypto.randomUUID(), createdAt: Date.now(), status: 'pending' };
+    state.records.push(record);
+    logRecordChange(state, record, currentUser, '勤務記録を作成');
     persist();
     navigate('records');
     showToast('勤務実績を保存しました');
