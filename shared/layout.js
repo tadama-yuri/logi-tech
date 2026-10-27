@@ -2,7 +2,11 @@ import { NAV_ITEMS, escapeHtml } from './data.js';
 import { renderTemplate } from './templates.js';
 
 function visibleNavItems(currentUser) {
-  return NAV_ITEMS.filter((item) => item.id !== 'admin' || currentUser.role === '運行管理者');
+  return NAV_ITEMS.filter((item) => {
+    if (item.id === 'admin') return currentUser.role === '管理者';
+    if (item.id === 'analytics') return currentUser.role !== 'ドライバー';
+    return true;
+  });
 }
 
 function navMarkup(currentScreen, items) {

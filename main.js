@@ -20,10 +20,20 @@ const screens = {
   admin: { render: renderAdmin, bind: bindAdmin }
 };
 
+function canAccessScreen(user, screen) {
+  if (!user) return false;
+  if (screen === 'analytics') return user.role === '管理者';
+  if (screen === 'admin') return user.role === '管理者';
+  return true;
+}
+
 function navigate(screen) {
   if (!screens[screen]) return;
-  if (screen === 'admin' && currentUser?.role !== '運行管理者') {
-    showToast('ユーザー管理は運行管理者のみ利用できます');
+  if (!canAccessScreen(currentUser, screen)) {
+    const message = screen === 'analytics'
+      ? '稼働分析は管理者のみ閲覧できます'
+      : 'この画面へのアクセス権限がありません';
+    showToast(message);
     return;
   }
   currentScreen = screen;
@@ -35,7 +45,7 @@ function render() {
   const navigateToApp = (user) => {
     if (!user) return;
     currentUser = user;
-    currentScreen = 'analytics';
+    currentScreen = currentUser.role === 'ドライバー' ? 'entry' : 'analytics';
     render();
   };
 
@@ -45,8 +55,10 @@ function render() {
     return;
   }
 
-  if (currentScreen === 'admin' && currentUser.role !== '運行管理者') currentScreen = 'analytics';
-  const screen = screens[currentScreen] || screens.analytics;
+  if (!canAccessScreen(currentUser, currentScreen)) {
+    currentScreen = currentUser.role === 'ドライバー' ? 'entry' : 'analytics';
+  }
+  const screen = screens[currentScreen] || (currentUser.role === 'ドライバー' ? screens.entry : screens.analytics);
   const context = {
     state,
     today,

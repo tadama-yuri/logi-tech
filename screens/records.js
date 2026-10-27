@@ -14,7 +14,7 @@ const RECORD_FIELDS = [
 ];
 
 function canManageRecord(currentUser, record) {
-  return currentUser.role === '運行管理者' || currentUser.id === record.userId;
+  return currentUser.role === '管理者' || currentUser.id === record.userId;
 }
 
 function recordStatus(record) {
@@ -45,7 +45,9 @@ function auditDetails(event) {
 }
 
 export function renderRecords({ state, currentUser, today, templates }) {
-  const rows = [...state.records].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+  const rows = [...state.records]
+    .filter((record) => currentUser.role === 'ドライバー' ? record.userId === currentUser.id : true)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
   const tableRows = rows.map((record) => {
     const user = userById(state, record.userId);
     const stats = recordStats(record);
@@ -54,7 +56,7 @@ export function renderRecords({ state, currentUser, today, templates }) {
       canManageRecord(currentUser, record)
         ? `<button class="button ghost small" data-edit-record="${escapeHtml(record.id)}">編集</button><button class="button danger small" data-delete-record="${escapeHtml(record.id)}">削除</button>`
         : '<span class="panel-meta">閲覧のみ</span>',
-      currentUser.role === '運行管理者' && status !== 'approved'
+      currentUser.role === '管理者' && status !== 'approved'
         ? `<button class="button primary small" data-approve-record="${escapeHtml(record.id)}">承認</button><button class="button ghost small" data-return-record="${escapeHtml(record.id)}">差し戻し</button>`
         : ''
     ].join('');
@@ -72,7 +74,7 @@ export function renderRecords({ state, currentUser, today, templates }) {
   return renderTemplate(templates, 'records', {
     RECORD_COUNT: rows.length,
     RECORD_ROWS: tableRows,
-    RECORD_ACCESS_NOTE: currentUser.role === '運行管理者' ? '全ユーザーの記録を編集・審査できます。' : '編集・削除できるのは自分の記録のみです。',
+    RECORD_ACCESS_NOTE: currentUser.role === '管理者' ? '全ユーザーの記録を編集・審査できます。' : '編集・削除できるのは自分の記録のみです。',
     EMPTY_RECORDS: rows.length ? '' : '<div class="empty"><strong>記録はまだありません</strong>勤務実績を入力するとここに表示されます。</div>',
     AUDIT_COUNT: auditEntries.length,
     AUDIT_ROWS: auditRows,
@@ -161,7 +163,7 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
   });
   document.querySelectorAll('[data-approve-record]').forEach((button) => button.addEventListener('click', () => {
     const record = state.records.find((item) => item.id === button.dataset.approveRecord);
-    if (currentUser.role !== '運行管理者' || !record) return showToast('承認する権限がありません');
+    if (currentUser.role !== '管理者' || !record) return showToast('承認する権限がありません');
     if (!window.confirm('この勤務記録を承認しますか？')) return;
     const before = { ...record };
     Object.assign(record, { status: 'approved', reviewedBy: currentUser.id, reviewedAt: new Date().toISOString(), reviewNote: '' });
@@ -172,7 +174,7 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
   }));
   document.querySelectorAll('[data-return-record]').forEach((button) => button.addEventListener('click', () => {
     const record = state.records.find((item) => item.id === button.dataset.returnRecord);
-    if (currentUser.role !== '運行管理者' || !record) return showToast('差し戻す権限がありません');
+    if (currentUser.role !== '管理者' || !record) return showToast('差し戻す権限がありません');
     const reason = window.prompt('差し戻し理由を入力してください');
     if (reason === null) return;
     if (!reason.trim()) return showToast('差し戻し理由を入力してください');

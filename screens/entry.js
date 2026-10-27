@@ -51,7 +51,7 @@ function confirmRecordSave(entry, stats, duplicates, driverName) {
     ? `\n\n注意: 同じドライバー・勤務日に ${duplicates} 件の記録があります。`
     : '';
   return window.confirm(
-    `この内容で勤務記録を保存しますか？\nドライバー: ${driverName}\n勤務日: ${entry.date}\n勤務時間: ${entry.start}〜${entry.end}\n実働: ${formatHours(stats.work)} 時間\n休憩: ${formatHours(entry.breakMinutes)} 時間\n荷待ち: ${formatHours(entry.waitMinutes)} 時間\n\n保存後は運行管理者の承認待ちになります。${duplicateWarning}`
+    `この内容で勤務記録を保存しますか？\nドライバー: ${driverName}\n勤務日: ${entry.date}\n勤務時間: ${entry.start}〜${entry.end}\n実働: ${formatHours(stats.work)} 時間\n休憩: ${formatHours(entry.breakMinutes)} 時間\n荷待ち: ${formatHours(entry.waitMinutes)} 時間\n\n保存後は管理者の承認待ちになります。${duplicateWarning}`
   );
 }
 

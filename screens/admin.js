@@ -2,8 +2,8 @@ import { escapeHtml } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
 
 export function renderAdmin({ state, currentUser, templates }) {
-  if (currentUser.role !== '運行管理者') {
-    return '<section class="page"><article class="panel"><h1>権限がありません</h1><p class="subtitle">ユーザー管理は運行管理者のみ利用できます。</p></article></section>';
+  if (currentUser.role !== '管理者') {
+    return '<section class="page"><article class="panel"><h1>権限がありません</h1><p class="subtitle">ユーザー管理は管理者のみ利用できます。</p></article></section>';
   }
 
   const usersMarkup = state.users.map((user) => {
@@ -19,12 +19,12 @@ export function renderAdmin({ state, currentUser, templates }) {
 }
 
 export function bindAdmin({ state, currentUser, persist, render, showToast }) {
-  if (currentUser.role !== '運行管理者') return;
+  if (currentUser.role !== '管理者') return;
 
   document.getElementById('user-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    if (currentUser.role !== '運行管理者') {
-      showToast('ユーザー管理は運行管理者のみ利用できます');
+    if (currentUser.role !== '管理者') {
+      showToast('ユーザー管理は管理者のみ利用できます');
       return;
     }
     const data = new FormData(event.currentTarget);
@@ -37,8 +37,8 @@ export function bindAdmin({ state, currentUser, persist, render, showToast }) {
     showToast('ユーザーを追加しました');
   });
   document.querySelectorAll('[data-delete-user]').forEach((button) => button.addEventListener('click', () => {
-    if (currentUser.role !== '運行管理者') {
-      showToast('ユーザー管理は運行管理者のみ利用できます');
+    if (currentUser.role !== '管理者') {
+      showToast('ユーザー管理は管理者のみ利用できます');
       return;
     }
     if (button.disabled) return;

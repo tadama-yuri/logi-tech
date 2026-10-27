@@ -1,7 +1,10 @@
 import { escapeHtml, formatDate, formatHours, recordStats, recordsForToday, totals, userById } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
 
-export function renderAnalytics({ state, today, templates }) {
+export function renderAnalytics({ state, today, templates, currentUser }) {
+  if (currentUser.role === 'ドライバー') {
+    return '<section class="page fade-in"><div class="panel"><h1>アクセス権がありません</h1><p>稼働分析は管理者のみ閲覧できます。</p></div></section>';
+  }
   const daily = recordsForToday(state, today);
   const sum = totals(daily);
   const all = totals(state.records);

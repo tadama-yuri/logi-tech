@@ -1,10 +1,9 @@
 const STORE_KEY = 'souroku-data-v1';
 
 const DEFAULT_USERS = [
-  { id: 'u1', name: '吉田 直人', role: '運行管理者' },
+  { id: 'u1', name: '吉田 直人', role: '管理者' },
   { id: 'u2', name: '佐藤 健', role: 'ドライバー' },
-  { id: 'u3', name: '高橋 亮', role: 'ドライバー' },
-  { id: 'u4', name: '田中 美咲', role: '配車担当' }
+  { id: 'u3', name: '高橋 亮', role: 'ドライバー' }
 ];
 
 export function localDateString(date = new Date()) {
