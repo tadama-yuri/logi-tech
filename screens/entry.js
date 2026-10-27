@@ -66,7 +66,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
   trackerDriver.addEventListener('change', updateTracker);
   updateTracker();
 
-  trackerStatusElement.addEventListener('click', (event) => {
+  trackerStatusElement.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-tracker-action]');
     if (!button) return;
 
@@ -93,7 +93,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
         activityStartedAt: null
       };
       state.activeShifts.push(shift);
-      persist();
+      if (!await persist()) return;
       updateTracker();
       refreshShiftReminder(state, currentUser);
       showToast('勤務を開始しました');
@@ -106,7 +106,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
       if (shift.activity) return;
       shift.activity = action === 'start-break' ? 'break' : 'wait';
       shift.activityStartedAt = now.toISOString();
-      persist();
+      if (!await persist()) return;
       updateTracker();
       showToast(action === 'start-break' ? '休憩を開始しました' : '荷待ちを開始しました');
       return;
@@ -118,7 +118,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
       shift[activity === 'break' ? 'breakMinutes' : 'waitMinutes'] += minutesSince(shift.activityStartedAt, now);
       shift.activity = null;
       shift.activityStartedAt = null;
-      persist();
+      if (!await persist()) return;
       updateTracker();
       showToast(activity === 'break' ? '休憩を記録しました' : '荷待ちを記録しました');
       return;
@@ -156,7 +156,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
       state.records.push(record);
       logRecordChange(state, record, currentUser, '勤務記録を作成');
       state.activeShifts = state.activeShifts.filter((activeShift) => activeShift.userId !== userId);
-      persist();
+      if (!await persist()) return;
       updateTracker();
       refreshShiftReminder(state, currentUser);
       showToast('勤務実績を保存しました');
@@ -182,7 +182,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
   form.addEventListener('change', update);
   form.addEventListener('reset', () => setTimeout(update));
   update();
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(form);
     const entry = Object.fromEntries(data.entries());
@@ -196,7 +196,7 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast }) 
     const record = { ...entry, id: crypto.randomUUID(), createdAt: Date.now(), status: 'pending' };
     state.records.push(record);
     logRecordChange(state, record, currentUser, '勤務記録を作成');
-    persist();
+    if (!await persist()) return;
     navigate('records');
     showToast('勤務実績を保存しました');
   });

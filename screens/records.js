@@ -121,7 +121,7 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
     editForm.elements.namedItem('note').value = record.note || '';
     editDialog.showModal();
   }));
-  editForm.addEventListener('submit', (event) => {
+  editForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(editForm);
     const record = state.records.find((item) => item.id === data.get('recordId'));
@@ -156,23 +156,23 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
     if (!window.confirm(confirmation)) return;
     Object.assign(record, updated, { status: 'pending', reviewedBy: null, reviewedAt: null, reviewNote: '' });
     logRecordChange(state, record, currentUser, '勤務記録を編集', { before, details });
-    persist();
+    if (!await persist()) return;
     editDialog.close();
     render();
     showToast('勤務記録を更新し、未承認に戻しました');
   });
-  document.querySelectorAll('[data-approve-record]').forEach((button) => button.addEventListener('click', () => {
+  document.querySelectorAll('[data-approve-record]').forEach((button) => button.addEventListener('click', async () => {
     const record = state.records.find((item) => item.id === button.dataset.approveRecord);
     if (currentUser.role !== '管理者' || !record) return showToast('承認する権限がありません');
     if (!window.confirm('この勤務記録を承認しますか？')) return;
     const before = { ...record };
     Object.assign(record, { status: 'approved', reviewedBy: currentUser.id, reviewedAt: new Date().toISOString(), reviewNote: '' });
     logRecordChange(state, record, currentUser, '勤務記録を承認', { before });
-    persist();
+    if (!await persist()) return;
     render();
     showToast('勤務記録を承認しました');
   }));
-  document.querySelectorAll('[data-return-record]').forEach((button) => button.addEventListener('click', () => {
+  document.querySelectorAll('[data-return-record]').forEach((button) => button.addEventListener('click', async () => {
     const record = state.records.find((item) => item.id === button.dataset.returnRecord);
     if (currentUser.role !== '管理者' || !record) return showToast('差し戻す権限がありません');
     const reason = window.prompt('差し戻し理由を入力してください');
@@ -182,17 +182,17 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
     const before = { ...record };
     Object.assign(record, { status: 'returned', reviewedBy: currentUser.id, reviewedAt: new Date().toISOString(), reviewNote: reason.trim() });
     logRecordChange(state, record, currentUser, '勤務記録を差し戻し', { before, details: `差し戻し理由: ${reason.trim()}` });
-    persist();
+    if (!await persist()) return;
     render();
     showToast('勤務記録を差し戻しました');
   }));
-  document.querySelectorAll('[data-delete-record]').forEach((button) => button.addEventListener('click', () => {
+  document.querySelectorAll('[data-delete-record]').forEach((button) => button.addEventListener('click', async () => {
     const record = state.records.find((item) => item.id === button.dataset.deleteRecord);
     if (!canManage(record)) return showToast('この記録を削除する権限がありません');
     if (!window.confirm('この勤務記録を削除しますか？削除履歴は保存されます。')) return;
     logRecordChange(state, record, currentUser, '勤務記録を削除', { before: { ...record }, deleted: true });
     state.records = state.records.filter((item) => item.id !== button.dataset.deleteRecord);
-    persist();
+    if (!await persist()) return;
     render();
     showToast('記録を削除しました');
   }));

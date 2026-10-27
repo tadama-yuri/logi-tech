@@ -16,6 +16,7 @@
 .login-form .field { margin-bottom: 16px; }
 .login-form .button { width: 100%; margin-top: 9px; }
 .demo-note { margin-top: 15px; padding: 11px; background: #f0f3f8; border-radius: 5px; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.login-error { margin-top: 15px; padding: 11px; background: #fff0ef; border-radius: 5px; color: #a52c25; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
 @media (max-width: 700px) {
   .login-wrap { grid-template-columns: 1fr; }
   .login-art { min-height: 250px; padding: 24px; }

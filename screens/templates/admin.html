@@ -1,6 +1,6 @@
 <section class="page fade-in">
-  <div class="page-heading"><div><div class="eyebrow">TEAM SETTINGS</div><h1>ユーザー管理</h1><p class="subtitle">チームメンバーと役割を管理します。現在はこの端末だけに保存されます。</p></div></div>
+  <div class="page-heading"><div><div class="eyebrow">TEAM SETTINGS</div><h1>ユーザー管理</h1><p class="subtitle">登録済みのチームメンバーと役割を確認します。</p></div></div>
   <div class="form-layout"><article class="panel"><div class="panel-heading"><h2 class="panel-title">登録ユーザー</h2><span class="panel-meta">{{USER_COUNT}} 名</span></div><div class="activity-list">{{USER_ROWS}}</div></article>
-    <article class="panel"><div class="panel-heading"><h2 class="panel-title">ユーザーを追加</h2></div><form id="user-form"><div class="field field-spaced"><label for="new-user-name">氏名 *</label><input id="new-user-name" name="name" maxlength="40" placeholder="例: 山田 太郎" required></div><div class="field"><label for="new-user-role">役割 *</label><select id="new-user-role" name="role"><option>ドライバー</option><option>管理者</option></select></div><div class="form-actions"><button class="button primary" type="submit">ユーザーを追加</button></div></form><div class="demo-note">この画面は試作用です。実際の複数ユーザー運用には、サーバー側の認証と権限チェックが必要です。</div></article>
+    {{ADMIN_CONTROLS}}
   </div>
 </section>

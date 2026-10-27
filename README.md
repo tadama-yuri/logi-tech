@@ -14,11 +14,11 @@ npx serve .
 
 ## 画面
 
-- ログイン: 試作用ユーザーを選択して開始。ヘッダーからログアウトして戻る
+- ログイン: デモではユーザー選択、Supabase 設定後はメールアドレスとパスワードで認証
 - データ入力: 勤務開始・終了、休憩・荷待ちをワンタップで記録。従来の手入力にも対応し、未終了勤務の通知、同日重複の注意、保存前確認を表示
 - 勤務記録: 保存済み記録の確認。管理者は全件、ドライバーは自分の分のみ閲覧・編集・削除。管理者の承認・差し戻しと変更履歴に対応
 - 分析結果: 管理者のみ閲覧可能。稼働率、荷待ち時間、ドライバー別集計を確認
-- ユーザー管理: 管理者のみ閲覧・追加・削除可能
+- ユーザー管理: 管理者のみ閲覧可能。Supabase 利用時のアカウント作成は Supabase 管理画面で行う
 
 ## 3人での GitHub 開発
 
@@ -32,6 +32,40 @@ HTML は `screens/templates/`、画面別 CSS は `styles/screens/` に分かれ
 
 仕様のたたき台は [docs/requirements.md](docs/requirements.md) にあります。担当や画面はチームで調整してください。
 
-## 試作上の制約
+## Supabase 接続（無料枠で試す場合）
 
-データは利用中のブラウザーの `localStorage` に保存され、端末間では同期されません。ログインは画面遷移用のデモであり、認証・権限管理・サーバー保存は未実装です。実運用前にバックエンド、認証、バックアップ、個人情報の取り扱いを設計してください。
+1. Supabase でプロジェクトを作成します。無料枠の利用条件・上限・休止条件は変更されることがあるため、利用前に Supabase の案内を確認してください。
+2. Supabase の SQL Editor で [`supabase/schema.sql`](./supabase/schema.sql) の内容を実行します。
+3. Project Settings の API から Project URL と anon/public key を取得し、[`shared/supabase-config.js`](./shared/supabase-config.js) の `SUPABASE_URL` と `SUPABASE_ANON_KEY` に設定します。anon key はブラウザーに置く前提の公開キーです。**service_role key やパスワードは絶対に設定・公開しないでください。**このアプリは RLS でアクセスを制限します。
+4. Supabase Authentication の Users からアカウントを追加します。新規アカウントは自動的にドライバー権限で作成されます。氏名を設定する場合はユーザーメタデータの `name` に入力します。
+5. SQL を実行する前に作成済みのアカウントを初回管理者にする場合は、SQL Editor でプロフィールを作成します（メールアドレスを実際の値に置き換えてください）。SQL 実行後に作成したアカウントなら、既にプロフィールがあるため `INSERT` は不要で、`UPDATE` だけで管理者にできます。
+
+   ```sql
+   insert into public.profiles (id, name, role)
+   select id,
+     coalesce(nullif(raw_user_meta_data ->> 'name', ''), split_part(email, '@', 1)),
+     '管理者'
+   from auth.users
+   where email = 'admin@example.com'
+   on conflict (id) do update set role = excluded.role;
+   ```
+
+6. Supabase Authentication の URL Configuration で、公開先 URL を Site URL / Redirect URLs に設定します。HTTPS で公開してください。
+7. テスト記録を登録する場合は、SQL Editor で [`supabase/seed_test_data.sql`](./supabase/seed_test_data.sql) を実行します。テストドライバーの過去4日分の勤務記録を登録し、勤務記録の監査トリガーも動作します。同じ SQL を再実行しても重複登録されません。
+
+設定が空のままなら、アプリは従来どおり端末内のデモモードで動きます。Supabase を設定した後はログイン認証と保存先が切り替わります。デモ用の `localStorage` データは自動移行されません。
+
+勤務データは Supabase の共有テーブルに保存され、RLS によりドライバーは自分のデータ、管理者は全データを扱います。監査履歴はデータベーストリガーで作成し、アプリから直接編集できない設定です。ユーザーアカウントの追加・削除は Supabase Authentication で行い、管理者ロールの変更は権限を持つ担当者が SQL Editor から行ってください。
+
+Supabase モードのユーザー管理画面では、管理者が表示名・メールアドレス・役割・初期パスワードを入力してアカウントを作成できます。確認メールは送らず、作成時にメール確認済みとして設定します。初期パスワードは本人へ安全な方法で伝えてください。アカウント作成 API は `supabase/functions/create-user/` にあり、呼び出し側のログイン状態と管理者ロールをサーバーで確認します。
+
+アプリ内のアカウント作成を有効にするには Supabase CLI で Edge Function をデプロイします。プロジェクトをリンクした後、リポジトリのルートから次を実行してください。Supabase の service role key は Edge Function の環境にだけ存在し、アプリの JavaScript には設定しません。
+
+```sh
+supabase link --project-ref tihqubtpjsrzxzqptcer
+supabase functions deploy create-user
+```
+
+## デモモードの制約
+
+Supabase の URL / anon key が未設定の場合は、データが利用中のブラウザーの `localStorage` に保存され、端末間では同期されません。ログインも画面遷移用のデモです。Supabase の無料枠は試作・小規模利用向けであり、バックアップ、利用条件、個人情報や労務データの保護要件を実運用前に確認してください。
