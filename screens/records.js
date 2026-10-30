@@ -45,6 +45,10 @@ function auditDetails(event) {
 }
 
 export function renderRecords({ state, currentUser, today, templates }) {
+  const drivers = state.users.filter((user) => user.role === 'ドライバー');
+  const driverFilter = currentUser.role === '管理者'
+    ? `<select id="driver-filter" aria-label="ドライバーで絞り込み"><option value="all">全ドライバー</option>${drivers.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)}</option>`).join('')}</select>`
+    : '';
   const rows = [...state.records]
     .filter((record) => currentUser.role === 'ドライバー' ? record.userId === currentUser.id : true)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
@@ -63,7 +67,7 @@ export function renderRecords({ state, currentUser, today, templates }) {
     const reviewNote = status === 'returned' && record.reviewNote
       ? `<div class="review-note">${escapeHtml(record.reviewNote)}</div>`
       : '';
-    return `<tr data-record-row data-name="${escapeHtml(user?.name || '')}" data-date="${escapeHtml(record.date)}" data-status="${escapeHtml(status)}"><td>${formatDate(record.date)}</td><td class="table-person">${escapeHtml(user?.name || '削除済みユーザー')}</td><td class="time">${escapeHtml(record.start)}–${escapeHtml(record.end)}</td><td>${formatHours(stats.work)} h</td><td>${formatHours(stats.wait)} h</td><td><span class="badge ${stats.rate < .7 ? 'warn' : ''}">${Math.round(stats.rate * 100)}%</span></td><td><span class="badge ${status === 'approved' ? '' : 'warn'}">${STATUS_LABELS[status] || STATUS_LABELS.pending}</span>${reviewNote}</td><td><div class="record-actions">${actions}</div></td></tr>`;
+    return `<tr data-record-row data-user-id="${escapeHtml(record.userId)}" data-name="${escapeHtml(user?.name || '')}" data-date="${escapeHtml(record.date)}" data-status="${escapeHtml(status)}"><td>${formatDate(record.date)}</td><td class="table-person">${escapeHtml(user?.name || '削除済みユーザー')}</td><td class="time">${escapeHtml(record.start)}–${escapeHtml(record.end)}</td><td>${formatHours(stats.work)} h</td><td>${formatHours(stats.wait)} h</td><td><span class="badge ${stats.rate < .7 ? 'warn' : ''}">${Math.round(stats.rate * 100)}%</span></td><td><span class="badge ${status === 'approved' ? '' : 'warn'}">${STATUS_LABELS[status] || STATUS_LABELS.pending}</span>${reviewNote}</td><td><div class="record-actions">${actions}</div></td></tr>`;
   }).join('');
   const auditEntries = (state.auditLog || []).filter((event) => currentUser.role !== 'ドライバー' || event.recordUserId === currentUser.id);
   const auditRows = auditEntries.map((event) => {
@@ -73,6 +77,7 @@ export function renderRecords({ state, currentUser, today, templates }) {
   }).join('');
   return renderTemplate(templates, 'records', {
     RECORD_COUNT: rows.length,
+    DRIVER_FILTER: driverFilter,
     RECORD_ROWS: tableRows,
     RECORD_ACCESS_NOTE: currentUser.role === '管理者' ? '全ユーザーの記録を編集・審査できます。' : '編集・削除できるのは自分の記録のみです。',
     EMPTY_RECORDS: rows.length ? '' : '<div class="empty"><strong>記録はまだありません</strong>勤務実績を入力するとここに表示されます。</div>',
@@ -84,7 +89,10 @@ export function renderRecords({ state, currentUser, today, templates }) {
 
 export function bindRecords({ state, currentUser, today, persist, render, showToast }) {
   const search = document.getElementById('record-search');
+  const driverFilter = document.getElementById('driver-filter');
   const dateFilter = document.getElementById('date-filter');
+  const dateFrom = document.getElementById('date-from');
+  const dateTo = document.getElementById('date-to');
   const approvalFilter = document.getElementById('approval-filter');
   const editDialog = document.getElementById('record-edit-dialog');
   const editForm = document.getElementById('record-edit-form');
@@ -93,10 +101,16 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
   const filter = () => {
     const query = search.value.trim().toLocaleLowerCase('ja');
     const todayOnly = dateFilter.value === 'today';
+    const invalidDateRange = dateFrom.value && dateTo.value && dateFrom.value > dateTo.value;
     let visible = 0;
+    document.getElementById('date-filter-error').hidden = !invalidDateRange;
     document.querySelectorAll('[data-record-row]').forEach((row) => {
       const matches = row.dataset.name.toLocaleLowerCase('ja').includes(query)
+        && (!driverFilter || driverFilter.value === 'all' || row.dataset.userId === driverFilter.value)
         && (!todayOnly || row.dataset.date === today)
+        && (!dateFrom.value || row.dataset.date >= dateFrom.value)
+        && (!dateTo.value || row.dataset.date <= dateTo.value)
+        && !invalidDateRange
         && (approvalFilter.value === 'all' || row.dataset.status === approvalFilter.value);
       row.hidden = !matches;
       if (matches) visible++;
@@ -106,7 +120,12 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
     if (empty) empty.hidden = visible > 0 || state.records.length === 0;
   };
   search.addEventListener('input', filter);
+  driverFilter?.addEventListener('change', filter);
   dateFilter.addEventListener('change', filter);
+  dateFrom.addEventListener('input', filter);
+  dateTo.addEventListener('input', filter);
+  dateFrom.addEventListener('change', filter);
+  dateTo.addEventListener('change', filter);
   approvalFilter.addEventListener('change', filter);
   document.querySelectorAll('[data-edit-record]').forEach((button) => button.addEventListener('click', () => {
     const record = state.records.find((item) => item.id === button.dataset.editRecord);

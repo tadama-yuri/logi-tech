@@ -30,6 +30,12 @@ create table public.active_shifts (
   activity_started_at timestamptz
 );
 
+create table public.work_schedules (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  work_date date not null,
+  primary key (user_id, work_date)
+);
+
 create table public.audit_log (
   id uuid primary key,
   record_id uuid not null,
@@ -180,6 +186,7 @@ create trigger audit_work_record_changes
 alter table public.profiles enable row level security;
 alter table public.work_records enable row level security;
 alter table public.active_shifts enable row level security;
+alter table public.work_schedules enable row level security;
 alter table public.audit_log enable row level security;
 
 create policy "Authenticated users can view team profiles"
@@ -213,15 +220,30 @@ create policy "Users delete own shifts and admins delete any"
   on public.active_shifts for delete to authenticated
   using (user_id = (select auth.uid()) or (select public.is_app_admin()));
 
+create policy "Users view own schedules and admins view all"
+  on public.work_schedules for select to authenticated
+  using (user_id = (select auth.uid()) or (select public.is_app_admin()));
+create policy "Admins create schedules"
+  on public.work_schedules for insert to authenticated
+  with check ((select public.is_app_admin()));
+create policy "Admins update schedules"
+  on public.work_schedules for update to authenticated
+  using ((select public.is_app_admin()))
+  with check ((select public.is_app_admin()));
+create policy "Admins delete schedules"
+  on public.work_schedules for delete to authenticated
+  using ((select public.is_app_admin()));
+
 create policy "Users view own audit history and admins view all"
   on public.audit_log for select to authenticated
   using (record_user_id = (select auth.uid()) or (select public.is_app_admin()));
 
 grant usage on schema public to authenticated;
-revoke all on public.profiles, public.work_records, public.active_shifts, public.audit_log from anon, authenticated;
+revoke all on public.profiles, public.work_records, public.active_shifts, public.work_schedules, public.audit_log from anon, authenticated;
 grant select on public.profiles to authenticated;
 grant select, insert, update, delete on public.work_records to authenticated;
 grant select, insert, update, delete on public.active_shifts to authenticated;
+grant select, insert, update, delete on public.work_schedules to authenticated;
 grant select on public.audit_log to authenticated;
 revoke all on function public.is_app_admin() from public, anon;
 grant execute on function public.is_app_admin() to authenticated;

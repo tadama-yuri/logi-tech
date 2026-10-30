@@ -12,7 +12,7 @@ import { renderLogin, bindLogin } from './screens/login.js';
 const today = localDateString();
 const remoteMode = isSupabaseConfigured();
 let state = remoteMode
-  ? { users: [], activeShifts: [], records: [], auditLog: [] }
+  ? { users: [], activeShifts: [], workSchedules: [], records: [], auditLog: [] }
   : loadState();
 let templates;
 let currentUser = null;
@@ -135,7 +135,7 @@ function render() {
         }
         currentUser = null;
         currentScreen = 'login';
-        replaceState(remoteMode ? { users: [], activeShifts: [], records: [], auditLog: [] } : loadState());
+        replaceState(remoteMode ? { users: [], activeShifts: [], workSchedules: [], records: [], auditLog: [] } : loadState());
         render();
       })();
     });

@@ -1,2 +1,14 @@
 .user-row-info { display: flex; align-items: center; gap: 10px; }
 .field-spaced { margin-bottom: 14px; }
+.schedule-panel { margin-top: 16px; }
+.schedule-setup-warning { padding: 12px; border: 1px solid #f0d39d; border-radius: 6px; background: #fff8e8; color: #785315; font-size: 11px; line-height: 1.7; }
+.schedule-setup-warning code { overflow-wrap: anywhere; }
+.schedule-list { display: grid; gap: 8px; margin-top: 16px; }
+.schedule-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.schedule-row-info { display: grid; gap: 4px; }
+.schedule-row-date { font-size: 12px; font-weight: 700; }
+.schedule-row-status { color: var(--muted); font-size: 10px; }
+.schedule-row .button { flex: 0 0 auto; }
+@media (max-width: 700px) {
+  .schedule-row { align-items: start; }
+}

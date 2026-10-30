@@ -67,18 +67,31 @@ function auditFromDatabase(row) {
 
 export async function loadRemoteState() {
   const client = await getSupabaseClient();
-  const [users, records, shifts, auditLog] = await Promise.all([
+  const [users, records, shifts, auditLog, schedules] = await Promise.all([
     client.from('profiles').select('id,name,role').order('name'),
     client.from('work_records').select('*').order('work_date', { ascending: false }),
     client.from('active_shifts').select('*'),
-    client.from('audit_log').select('*').order('created_at', { ascending: false })
+    client.from('audit_log').select('*').order('created_at', { ascending: false }),
+    client.from('work_schedules').select('user_id,work_date').order('work_date')
   ]);
   [users, records, shifts, auditLog].forEach(throwIfError);
+
+  const missingScheduleTable = schedules.error?.code === 'PGRST205'
+    && schedules.error.message.includes("public.work_schedules");
+  if (schedules.error && !missingScheduleTable) throw schedules.error;
+  if (missingScheduleTable) {
+    console.warn('勤務予定テーブルが見つかりません。勤務予定のリマインダーを有効にするには supabase/schedule-migration.sql を実行してください。');
+  }
 
   const state = {
     users: users.data,
     records: records.data.map(recordFromDatabase),
     activeShifts: shifts.data.map(shiftFromDatabase),
+    workSchedulesAvailable: !missingScheduleTable,
+    workSchedules: (schedules.data || []).map((schedule) => ({
+      userId: schedule.user_id,
+      date: schedule.work_date
+    })),
     auditLog: auditLog.data.map(auditFromDatabase)
   };
   baseline = structuredClone(state);

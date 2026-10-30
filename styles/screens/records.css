@@ -5,9 +5,14 @@ td { font-size: 11px; padding: 13px 12px; border-bottom: 1px solid #edf0f5; whit
 tbody tr:last-child td { border-bottom: 0; }
 .table-person { font-weight: 700; }
 .record-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.filter-row { display: flex; gap: 9px; align-items: center; margin-bottom: 15px; }
+.filter-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 9px; align-items: center; margin-bottom: 15px; }
 .filter-row input, .filter-row select { min-height: 36px; border: 1px solid var(--line); border-radius: 5px; background: white; padding: 0 10px; font-size: 11px; color: var(--ink); }
-.filter-row input { flex: 1; min-width: 120px; }
+.filter-row input[type="search"] { grid-column: span 4; width: 100%; min-width: 0; }
+.filter-row select { grid-column: span 2; width: 100%; min-width: 0; }
+.filter-row #record-count { grid-column: span 1; justify-self: end; white-space: nowrap; }
+.date-filter { display: flex; grid-column: span 3; align-items: center; gap: 5px; min-width: 0; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.date-filter input { flex: 1; width: 100%; min-width: 0; }
+.filter-error { margin: -5px 0 12px; color: #a33b32; font-size: 11px; }
 .review-note { max-width: 170px; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.5; white-space: normal; }
 .audit-panel { margin-top: 17px; }
 .audit-details summary { color: var(--navy-2); cursor: pointer; font-size: 10px; }
@@ -27,11 +32,19 @@ tbody tr:last-child td { border-bottom: 0; }
 .edit-note-field { grid-column: 1/-1; }
 .record-edit-dialog .form-actions { margin-top: 20px; }
 @media (max-width: 700px) {
-  .filter-row { flex-wrap: wrap; }
-  .filter-row input { flex-basis: 100%; }
-  .filter-row select { flex: 1; min-width: 0; }
+  .filter-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .filter-row input[type="search"] { grid-column: span 4; }
+  .filter-row select { grid-column: span 2; }
+  .date-filter { grid-column: span 2; }
+  .filter-row #record-count { grid-column: span 4; justify-self: end; }
   .record-edit-dialog { padding: 18px; }
   .edit-fields { gap: 11px; }
+}
+@media (min-width: 701px) and (max-width: 1000px) {
+  .filter-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .filter-row input[type="search"] { grid-column: span 3; }
+  .filter-row select, .date-filter { grid-column: span 3; }
+  .filter-row #record-count { grid-column: span 6; }
 }
 @media (max-width: 380px) {
   .edit-fields { grid-template-columns: 1fr; }

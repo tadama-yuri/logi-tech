@@ -17,6 +17,8 @@ yesterday.setDate(yesterday.getDate() - 1);
 const sampleData = {
   users: DEFAULT_USERS,
   activeShifts: [],
+  workSchedules: [],
+  workSchedulesAvailable: true,
   records: [
     { id: 'r1', userId: 'u2', date: today, start: '07:30', end: '17:15', breakMinutes: 60, waitMinutes: 95, note: '午前便・午後便', createdAt: Date.now() - 1000 },
     { id: 'r2', userId: 'u3', date: today, start: '08:00', end: '18:30', breakMinutes: 75, waitMinutes: 140, note: 'センターで荷待ち', createdAt: Date.now() - 2000 },
@@ -37,6 +39,8 @@ export function loadState() {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved && Array.isArray(saved.users) && Array.isArray(saved.records)) {
       saved.activeShifts = Array.isArray(saved.activeShifts) ? saved.activeShifts : [];
+      saved.workSchedules = Array.isArray(saved.workSchedules) ? saved.workSchedules : [];
+      saved.workSchedulesAvailable = true;
       saved.auditLog = Array.isArray(saved.auditLog) ? saved.auditLog : [];
       return saved;
     }
@@ -85,6 +89,16 @@ export function userById(state, id) {
 
 export function recordsForToday(state, today) {
   return state.records.filter((record) => record.date === today);
+}
+
+export function missingScheduledDates(state, userId, today = localDateString()) {
+  const recordedDates = new Set(
+    state.records.filter((record) => record.userId === userId).map((record) => record.date)
+  );
+  return [...new Set((state.workSchedules || [])
+    .filter((schedule) => schedule.userId === userId && schedule.date < today && !recordedDates.has(schedule.date))
+    .map((schedule) => schedule.date))]
+    .sort((a, b) => b.localeCompare(a));
 }
 
 export function totals(records) {

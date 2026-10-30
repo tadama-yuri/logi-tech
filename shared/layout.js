@@ -1,4 +1,4 @@
-import { NAV_ITEMS, escapeHtml } from './data.js';
+import { NAV_ITEMS, escapeHtml, formatDate, localDateString, missingScheduledDates } from './data.js';
 import { renderTemplate } from './templates.js';
 
 function visibleNavItems(currentUser) {
@@ -25,6 +25,10 @@ export function appFrame(content, { currentScreen, currentUser, templates, state
   const initials = currentUser.name.replace(/\s/g, '').slice(0, 1);
   const navItems = visibleNavItems(currentUser);
   const activeShifts = (state.activeShifts || []).filter((shift) => currentUser.role !== 'ドライバー' || shift.userId === currentUser.id);
+  const missingDates = currentUser.role === 'ドライバー'
+    ? missingScheduledDates(state, currentUser.id, localDateString())
+    : [];
+  const missingDateLabels = missingDates.slice(0, 3).map(formatDate).join('、');
   return renderTemplate(templates, 'shell', {
     NAV: navMarkup(currentScreen, navItems),
     NAV_COLUMN_COUNT: navItems.length,
@@ -37,6 +41,9 @@ export function appFrame(content, { currentScreen, currentUser, templates, state
     SHIFT_REMINDER: activeShifts.length
       ? `<div class="shift-reminder" id="active-shift-reminder" role="status"><span data-reminder-message>勤務中のままの記録が ${activeShifts.length} 件あります。勤務を終了して記録を確定してください。</span><button type="button" class="button ghost small" data-screen="entry">勤務記録を確認</button></div>`
       : '<div class="shift-reminder" id="active-shift-reminder" role="status" hidden><span data-reminder-message></span><button type="button" class="button ghost small" data-screen="entry">勤務記録を確認</button></div>',
+    SCHEDULE_REMINDER: missingDates.length
+      ? `<div class="schedule-reminder" role="status"><span>勤務記録が未入力の予定日があります（${missingDateLabels}${missingDates.length > 3 ? `、ほか${missingDates.length - 3}日` : ''}）。記録を入力してください。</span><button type="button" class="button ghost small" data-screen="entry">勤務記録を入力</button></div>`
+      : '',
     CONTENT: content
   });
 }
