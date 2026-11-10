@@ -31,6 +31,12 @@
 .ai-panel { margin-top: 16px; }
 .ai-panel .panel-heading { align-items: flex-start; }
 .ai-report-result { white-space: pre-wrap; line-height: 1.8; color: var(--ink); background: #f7f8fa; border-radius: 6px; padding: 14px; font-size: 12px; }
+.report-form { display: flex; align-items: end; gap: 12px; margin-bottom: 14px; }
+.report-form .field { min-width: 180px; }
+@media (max-width: 700px) {
+  .report-form { align-items: stretch; flex-direction: column; }
+  .report-form .field { min-width: 0; }
+}
 @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) {
   .metrics { gap: 9px; margin-bottom: 10px; }

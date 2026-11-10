@@ -1,4 +1,4 @@
-const CACHE_NAME = 'souroku-v9';
+const CACHE_NAME = 'souroku-v10';
 const APP_FILES = [
   './',
   './index.html',
