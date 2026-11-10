@@ -1,4 +1,4 @@
-const CACHE_NAME = 'souroku-v10';
+const CACHE_NAME = 'souroku-v12';
 const APP_FILES = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const APP_FILES = [
   './shared/supabase.js',
   './shared/layout.js',
   './shared/templates.js',
+  './shared/pagination.js',
   './shared/templates/shell.html',
   './screens/login.js',
   './screens/entry.js',

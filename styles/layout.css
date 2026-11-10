@@ -41,6 +41,11 @@ h1 { font-size: clamp(23px, 3vw, 30px); letter-spacing: 0; line-height: 1.35; ma
 .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 17px; }
 .panel-title { margin: 0; font-size: 14px; font-weight: 800; }
 .panel-meta { color: var(--muted); font-size: 10px; }
+.pagination-hidden { display: none !important; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
+.pagination[hidden] { display: none; }
+.pagination .button:disabled { opacity: .45; cursor: default; }
+.pagination-status { min-width: 88px; color: var(--muted); font-size: 11px; text-align: center; }
 .toast { position: fixed; left: 50%; bottom: 28px; z-index: 10; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: .2s; background: var(--ink); color: white; padding: 11px 16px; border-radius: 6px; font-size: 12px; box-shadow: var(--shadow); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .mobile-nav { display: none; }

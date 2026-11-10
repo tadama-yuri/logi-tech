@@ -14,17 +14,32 @@ const today = localDateString();
 const yesterday = new Date();
 yesterday.setDate(yesterday.getDate() - 1);
 
+const sampleRecords = [
+  { id: 'r1', userId: 'u2', date: today, start: '07:30', end: '17:15', breakMinutes: 60, waitMinutes: 95, note: '午前便・午後便', createdAt: Date.now() - 1000 },
+  { id: 'r2', userId: 'u3', date: today, start: '08:00', end: '18:30', breakMinutes: 75, waitMinutes: 140, note: 'センターで荷待ち', createdAt: Date.now() - 2000 },
+  { id: 'r3', userId: 'u2', date: today, start: '06:45', end: '16:20', breakMinutes: 60, waitMinutes: 55, note: '', createdAt: Date.now() - 3000 },
+  { id: 'r4', userId: 'u2', date: localDateString(yesterday), start: '07:00', end: '16:40', breakMinutes: 60, waitMinutes: 80, note: '', createdAt: Date.now() - 86400000 }
+];
+
+function sampleSchedulesFor(records) {
+  const examples = [
+    { recordId: 'r1', start: '07:30', end: '17:00' },
+    { recordId: 'r2', start: '08:15', end: '18:00' },
+    { recordId: 'r4', start: '07:15', end: '16:30' }
+  ];
+  return examples.flatMap(({ recordId, start, end }) => {
+    const record = records.find((item) => item.id === recordId);
+    return record ? [{ userId: record.userId, date: record.date, start, end }] : [];
+  });
+}
+
 const sampleData = {
   users: DEFAULT_USERS,
   activeShifts: [],
-  workSchedules: [],
+  workSchedules: sampleSchedulesFor(sampleRecords),
   workSchedulesAvailable: true,
-  records: [
-    { id: 'r1', userId: 'u2', date: today, start: '07:30', end: '17:15', breakMinutes: 60, waitMinutes: 95, note: '午前便・午後便', createdAt: Date.now() - 1000 },
-    { id: 'r2', userId: 'u3', date: today, start: '08:00', end: '18:30', breakMinutes: 75, waitMinutes: 140, note: 'センターで荷待ち', createdAt: Date.now() - 2000 },
-    { id: 'r3', userId: 'u2', date: today, start: '06:45', end: '16:20', breakMinutes: 60, waitMinutes: 55, note: '', createdAt: Date.now() - 3000 },
-    { id: 'r4', userId: 'u2', date: localDateString(yesterday), start: '07:00', end: '16:40', breakMinutes: 60, waitMinutes: 80, note: '', createdAt: Date.now() - 86400000 }
-  ]
+  demoScheduleExamplesLoaded: true,
+  records: sampleRecords
 };
 
 export const NAV_ITEMS = [
@@ -40,6 +55,18 @@ export function loadState() {
     if (saved && Array.isArray(saved.users) && Array.isArray(saved.records)) {
       saved.activeShifts = Array.isArray(saved.activeShifts) ? saved.activeShifts : [];
       saved.workSchedules = Array.isArray(saved.workSchedules) ? saved.workSchedules : [];
+      const sampleRecordIds = new Set(['r1', 'r2', 'r3', 'r4']);
+      if (saved.demoScheduleExamplesLoaded !== true) {
+        if (!saved.workSchedules.length && saved.records.some((record) => sampleRecordIds.has(record.id))) {
+          saved.workSchedules = sampleSchedulesFor(saved.records);
+        }
+        saved.demoScheduleExamplesLoaded = true;
+        try {
+          localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+        } catch (error) {
+          console.warn('サンプル勤務予定を保存できませんでした。', error);
+        }
+      }
       saved.workSchedulesAvailable = true;
       saved.auditLog = Array.isArray(saved.auditLog) ? saved.auditLog : [];
       return saved;
@@ -99,6 +126,18 @@ export function missingScheduledDates(state, userId, today = localDateString()) 
     .filter((schedule) => schedule.userId === userId && schedule.date < today && !recordedDates.has(schedule.date))
     .map((schedule) => schedule.date))]
     .sort((a, b) => b.localeCompare(a));
+}
+
+export function scheduleForDate(state, userId, date) {
+  return (state.workSchedules || []).find((schedule) => schedule.userId === userId && schedule.date === date);
+}
+
+export function scheduleTimeDelta(planned, actual) {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(planned || '') || !/^([01]\d|2[0-3]):[0-5]\d$/.test(actual || '')) return null;
+  const [plannedHour, plannedMinute] = planned.split(':').map(Number);
+  const [actualHour, actualMinute] = actual.split(':').map(Number);
+  const difference = actualHour * 60 + actualMinute - (plannedHour * 60 + plannedMinute);
+  return ((difference + 720 + 1440) % 1440) - 720;
 }
 
 export function totals(records) {

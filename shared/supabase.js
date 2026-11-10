@@ -67,18 +67,28 @@ function auditFromDatabase(row) {
 
 export async function loadRemoteState() {
   const client = await getSupabaseClient();
-  const [users, records, shifts, auditLog, schedules] = await Promise.all([
+  const [users, records, shifts, auditLog, schedulesWithTimes] = await Promise.all([
     client.from('profiles').select('id,name,role').order('name'),
     client.from('work_records').select('*').order('work_date', { ascending: false }),
     client.from('active_shifts').select('*'),
     client.from('audit_log').select('*').order('created_at', { ascending: false }),
-    client.from('work_schedules').select('user_id,work_date').order('work_date')
+    client.from('work_schedules').select('user_id,work_date,start_time,end_time').order('work_date')
   ]);
   [users, records, shifts, auditLog].forEach(throwIfError);
 
-  const missingScheduleTable = schedules.error?.code === 'PGRST205'
-    && schedules.error.message.includes("public.work_schedules");
-  if (schedules.error && !missingScheduleTable) throw schedules.error;
+  const missingScheduleTable = schedulesWithTimes.error?.code === 'PGRST205'
+    && schedulesWithTimes.error.message.includes("public.work_schedules");
+  let schedules = schedulesWithTimes;
+  let scheduleTimesAvailable = true;
+  if (!missingScheduleTable && schedulesWithTimes.error) {
+    const missingTimeColumns = ['PGRST204', '42703'].includes(schedulesWithTimes.error.code)
+      && /start_time|end_time/.test(schedulesWithTimes.error.message);
+    if (!missingTimeColumns) throw schedulesWithTimes.error;
+    scheduleTimesAvailable = false;
+    schedules = await client.from('work_schedules').select('user_id,work_date').order('work_date');
+    throwIfError(schedules);
+    console.warn('勤務予定の時刻列が見つかりません。時刻を使うには supabase/schedule-migration.sql を実行してください。');
+  }
   if (missingScheduleTable) {
     console.warn('勤務予定テーブルが見つかりません。勤務予定のリマインダーを有効にするには supabase/schedule-migration.sql を実行してください。');
   }
@@ -88,9 +98,12 @@ export async function loadRemoteState() {
     records: records.data.map(recordFromDatabase),
     activeShifts: shifts.data.map(shiftFromDatabase),
     workSchedulesAvailable: !missingScheduleTable,
+    workScheduleTimesAvailable: scheduleTimesAvailable && !missingScheduleTable,
     workSchedules: (schedules.data || []).map((schedule) => ({
       userId: schedule.user_id,
-      date: schedule.work_date
+      date: schedule.work_date,
+      start: schedule.start_time || '',
+      end: schedule.end_time || ''
     })),
     auditLog: auditLog.data.map(auditFromDatabase)
   };

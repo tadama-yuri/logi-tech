@@ -1,8 +1,14 @@
 create table if not exists public.work_schedules (
   user_id uuid not null references public.profiles (id) on delete cascade,
   work_date date not null,
+  start_time text,
+  end_time text,
   primary key (user_id, work_date)
 );
+
+alter table public.work_schedules
+  add column if not exists start_time text,
+  add column if not exists end_time text;
 
 alter table public.work_schedules enable row level security;
 

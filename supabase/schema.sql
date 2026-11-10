@@ -33,6 +33,8 @@ create table public.active_shifts (
 create table public.work_schedules (
   user_id uuid not null references public.profiles (id) on delete cascade,
   work_date date not null,
+  start_time text not null check (start_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  end_time text not null check (end_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
   primary key (user_id, work_date)
 );
 

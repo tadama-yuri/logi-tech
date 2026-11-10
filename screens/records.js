@@ -1,5 +1,6 @@
-import { escapeHtml, formatDate, formatHours, logRecordChange, recordStats, userById } from '../shared/data.js';
+import { escapeHtml, formatDate, formatHours, logRecordChange, recordStats, scheduleTimeDelta, userById } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
+import { setupPagination } from '../shared/pagination.js';
 
 const STATUS_LABELS = { pending: '未承認', approved: '承認済み', returned: '要修正' };
 const RECORD_FIELDS = [
@@ -44,7 +45,24 @@ function auditDetails(event) {
   return `<details class="audit-details"><summary>内容を表示</summary><ul>${fields.map((field) => `<li>${field}</li>`).join('') || '<li>内容の詳細はありません</li>'}</ul></details>`;
 }
 
-export function renderRecords({ state, currentUser, today, templates }) {
+function scheduleComparison(schedule, record) {
+  if (!schedule?.start || !schedule?.end) return null;
+  const startDelta = scheduleTimeDelta(schedule.start, record.start);
+  const endDelta = scheduleTimeDelta(schedule.end, record.end);
+  if (startDelta === null || endDelta === null) return null;
+  return {
+    startDelta,
+    endDelta,
+    onTime: Math.abs(startDelta) <= 15 && Math.abs(endDelta) <= 15
+  };
+}
+
+function formatScheduleDelta(delta) {
+  if (delta === 0) return '0分';
+  return `${delta > 0 ? '+' : '-'}${Math.abs(delta)}分`;
+}
+
+export function renderRecords({ state, currentUser, templates }) {
   const drivers = state.users.filter((user) => user.role === 'ドライバー');
   const driverFilter = currentUser.role === '管理者'
     ? `<select id="driver-filter" aria-label="ドライバーで絞り込み"><option value="all">全ドライバー</option>${drivers.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)}</option>`).join('')}</select>`
@@ -56,6 +74,19 @@ export function renderRecords({ state, currentUser, today, templates }) {
     const user = userById(state, record.userId);
     const stats = recordStats(record);
     const status = recordStatus(record);
+    const schedule = (state.workSchedules || []).find((item) => item.userId === record.userId && item.date === record.date);
+    const comparison = schedule && scheduleComparison(schedule, record);
+    const scheduleTime = schedule?.start && schedule?.end
+      ? `${escapeHtml(schedule.start)}–${escapeHtml(schedule.end)}`
+      : schedule ? '時刻未設定' : '—';
+    const comparisonStatus = schedule
+      ? comparison
+        ? `<span class="badge ${comparison.onTime ? '' : 'warn'}">${comparison.onTime ? '予定通り' : '予定との差あり'}</span>`
+        : '<span class="badge warn">比較不可</span>'
+      : '—';
+    const scheduleDelta = comparison && !comparison.onTime
+      ? `<div class="schedule-delta">開始 ${formatScheduleDelta(comparison.startDelta)} / 終了 ${formatScheduleDelta(comparison.endDelta)}<br>（実績 − 予定）</div>`
+      : '—';
     const actions = [
       canManageRecord(currentUser, record)
         ? `<button class="button ghost small" data-edit-record="${escapeHtml(record.id)}">編集</button><button class="button danger small" data-delete-record="${escapeHtml(record.id)}">削除</button>`
@@ -67,7 +98,7 @@ export function renderRecords({ state, currentUser, today, templates }) {
     const reviewNote = status === 'returned' && record.reviewNote
       ? `<div class="review-note">${escapeHtml(record.reviewNote)}</div>`
       : '';
-    return `<tr data-record-row data-user-id="${escapeHtml(record.userId)}" data-name="${escapeHtml(user?.name || '')}" data-date="${escapeHtml(record.date)}" data-status="${escapeHtml(status)}"><td>${formatDate(record.date)}</td><td class="table-person">${escapeHtml(user?.name || '削除済みユーザー')}</td><td class="time">${escapeHtml(record.start)}–${escapeHtml(record.end)}</td><td>${formatHours(stats.work)} h</td><td>${formatHours(stats.wait)} h</td><td><span class="badge ${stats.rate < .7 ? 'warn' : ''}">${Math.round(stats.rate * 100)}%</span></td><td><span class="badge ${status === 'approved' ? '' : 'warn'}">${STATUS_LABELS[status] || STATUS_LABELS.pending}</span>${reviewNote}</td><td><div class="record-actions">${actions}</div></td></tr>`;
+    return `<tr data-record-row data-user-id="${escapeHtml(record.userId)}" data-name="${escapeHtml(user?.name || '')}" data-date="${escapeHtml(record.date)}" data-status="${escapeHtml(status)}"><td>${formatDate(record.date)}</td><td class="table-person">${escapeHtml(user?.name || '削除済みユーザー')}</td><td class="time">${escapeHtml(record.start)}–${escapeHtml(record.end)}</td><td>${scheduleTime}</td><td>${comparisonStatus}</td><td>${scheduleDelta}</td><td>${formatHours(stats.work)} h</td><td>${formatHours(stats.wait)} h</td><td><span class="badge ${stats.rate < .7 ? 'warn' : ''}">${Math.round(stats.rate * 100)}%</span></td><td><span class="badge ${status === 'approved' ? '' : 'warn'}">${STATUS_LABELS[status] || STATUS_LABELS.pending}</span>${reviewNote}</td><td><div class="record-actions">${actions}</div></td></tr>`;
   }).join('');
   const auditEntries = (state.auditLog || []).filter((event) => currentUser.role !== 'ドライバー' || event.recordUserId === currentUser.id);
   const auditRows = auditEntries.map((event) => {
@@ -97,6 +128,8 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
   const editDialog = document.getElementById('record-edit-dialog');
   const editForm = document.getElementById('record-edit-form');
   const canManage = (record) => record && canManageRecord(currentUser, record);
+  const recordPagination = setupPagination(document.querySelector('[data-record-pagination]'), '[data-record-row]');
+  setupPagination(document.querySelector('[data-audit-pagination]'), 'tbody tr');
   document.querySelectorAll('[data-close-edit]').forEach((button) => button.addEventListener('click', () => editDialog.close()));
   const filter = () => {
     const query = search.value.trim().toLocaleLowerCase('ja');
@@ -112,13 +145,15 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
         && (!dateTo.value || row.dataset.date <= dateTo.value)
         && !invalidDateRange
         && (approvalFilter.value === 'all' || row.dataset.status === approvalFilter.value);
-      row.hidden = !matches;
+      row.dataset.paginationFiltered = String(!matches);
       if (matches) visible++;
     });
     document.getElementById('record-count').textContent = `${visible} 件`;
+    recordPagination.refresh(true);
     const empty = document.getElementById('filter-empty');
     if (empty) empty.hidden = visible > 0 || state.records.length === 0;
   };
+  filter();
   search.addEventListener('input', filter);
   driverFilter?.addEventListener('change', filter);
   dateFilter.addEventListener('change', filter);
