@@ -6,7 +6,7 @@
     <article class="panel"><div class="panel-heading"><div><h2 class="panel-title">手入力で勤務を記録</h2><p class="field-hint">勤務時刻や休憩・荷待ちの合計が分かる場合はこちら</p></div><span class="panel-meta">* 必須</span></div><div class="form-grid">
       <section class="form-section full"><div class="form-section-heading"><span class="form-step">1</span><div><h3>基本情報</h3><p>誰の、いつの記録かを入力します。</p></div></div><div class="form-section-fields">
         <div class="field"><label for="record-date">勤務日 *</label><input id="record-date" name="date" type="date" value="{{TODAY}}" required></div>
-        <div class="field"><label for="driver-id">ドライバー *</label><select id="driver-id" name="userId" required>{{DRIVER_OPTIONS}}</select></div>
+        <div class="field"><label for="driver-id">ドライバー *</label><select id="driver-id" name="userId" required {{DRIVER_DISABLED}}>{{DRIVER_OPTIONS}}</select></div>
       </div></section>
       <section class="form-section full"><div class="form-section-heading"><span class="form-step">2</span><div><h3>勤務時間</h3><p>開始時刻から終了時刻まで。終了が早い場合は翌日として計算します。</p></div></div><div class="form-section-fields">
         <div class="field"><label for="start-time">勤務開始時刻 *</label><input id="start-time" name="start" type="time" value="08:00" required></div>

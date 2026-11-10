@@ -75,6 +75,7 @@ h1 { font-size: clamp(23px, 3vw, 30px); letter-spacing: 0; line-height: 1.35; ma
   .subtitle { font-size: 10px; line-height: 1.7; }
   .panel { padding: 16px; }
   .mobile-nav { position: fixed; display: grid; grid-template-columns: repeat(4, 1fr); bottom: 0; left: 0; right: 0; z-index: 5; padding: 7px 5px calc(7px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); border-top: 1px solid var(--line); backdrop-filter: blur(12px); }
+  .mobile-nav.nav-columns-2 { grid-template-columns: repeat(2, 1fr); }
   .mobile-nav.nav-columns-3 { grid-template-columns: repeat(3, 1fr); }
   .mobile-nav .nav-item { color: var(--muted); padding: 6px 2px; border-radius: 5px; justify-content: center; flex-direction: column; gap: 3px; font-size: 9px; }
   .mobile-nav .nav-item.active { color: var(--navy); background: #e3f3ee; }

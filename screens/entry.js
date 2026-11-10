@@ -29,10 +29,15 @@ function renderScheduleControls({ state, currentUser, today, remoteMode }) {
 
 export function renderEntry({ state, currentUser, today, templates, remoteMode }) {
   const defaultDriver = currentUser.role === 'ドライバー' ? currentUser.id : (state.users.find((user) => user.role === 'ドライバー')?.id || '');
-  const options = state.users.filter((user) => user.role === 'ドライバー').map((user) => `<option value="${escapeHtml(user.id)}" ${user.id === defaultDriver ? 'selected' : ''}>${escapeHtml(user.name)}</option>`).join('');
+  const drivers = state.users.filter((user) => user.role === 'ドライバー');
+  const availableDrivers = currentUser.role === 'ドライバー'
+    ? drivers.filter((user) => user.id === currentUser.id)
+    : drivers;
+  const options = availableDrivers.map((user) => `<option value="${escapeHtml(user.id)}" ${user.id === defaultDriver ? 'selected' : ''}>${escapeHtml(user.name)}</option>`).join('');
   return renderTemplate(templates, 'entry', {
     TODAY: today,
     DRIVER_OPTIONS: options || '<option value="">管理画面でドライバーを追加</option>',
+    DRIVER_DISABLED: currentUser.role === 'ドライバー' ? 'disabled' : '',
     TRACKER_DRIVER_OPTIONS: options || '<option value="">管理画面でドライバーを追加</option>',
     TRACKER_DRIVER_DISABLED: currentUser.role === 'ドライバー' ? 'disabled' : '',
     SCHEDULE_CONTROLS: renderScheduleControls({ state, currentUser, today, remoteMode })
@@ -323,10 +328,11 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast, re
     event.preventDefault();
     const data = new FormData(form);
     const entry = Object.fromEntries(data.entries());
+    if (currentUser.role === 'ドライバー') entry.userId = currentUser.id;
     entry.breakMinutes = Number(entry.breakMinutes || 0);
     entry.waitMinutes = Number(entry.waitMinutes || 0);
     const stats = recordStats(entry);
-    if (!entry.userId || !state.users.some((user) => user.id === entry.userId)) return showToast('ドライバーを選択してください');
+    if (!entry.userId || !state.users.some((user) => user.id === entry.userId && user.role === 'ドライバー')) return showToast('ドライバーを選択してください');
     if (stats.span <= 0 || stats.work <= 0) return showToast('勤務時間と休憩時間を確認してください');
     if (entry.waitMinutes > stats.work) return showToast('荷待ち時間は実働時間以内で入力してください');
     if (!confirmRecordSave(entry, stats, duplicateCount(state, entry), state.users.find((user) => user.id === entry.userId).name)) return;
