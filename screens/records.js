@@ -1,4 +1,4 @@
-import { escapeHtml, formatDate, formatHours, logRecordChange, recordStats, scheduleTimeDelta, userById } from '../shared/data.js';
+import { escapeHtml, formatDate, formatHours, localDateString, logRecordChange, recordStats, scheduleTimeDelta, userById } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
 import { setupPagination } from '../shared/pagination.js';
 
@@ -62,7 +62,83 @@ function formatScheduleDelta(delta) {
   return `${delta > 0 ? '+' : '-'}${Math.abs(delta)}分`;
 }
 
-export function renderRecords({ state, currentUser, templates }) {
+function shiftDate(date, days) {
+  const shifted = new Date(`${date}T12:00:00`);
+  shifted.setDate(shifted.getDate() + days);
+  return localDateString(shifted);
+}
+
+function filterDateRange({ dateFilter, dateFrom, dateTo, calendarStart, today }) {
+  const start = dateFilter === 'today' ? today : dateFilter === 'week' ? calendarStart : '';
+  const end = dateFilter === 'today' ? today : dateFilter === 'week' ? shiftDate(calendarStart, 6) : '';
+  return {
+    start: dateFrom && (!start || dateFrom > start) ? dateFrom : start,
+    end: dateTo && (!end || dateTo < end) ? dateTo : end
+  };
+}
+
+function matchesRecordFilters({ userId, name, date, status }, filters, range) {
+  const query = filters.query.trim().toLocaleLowerCase('ja');
+  return (!query || name.toLocaleLowerCase('ja').includes(query))
+    && (!filters.driverId || userId === filters.driverId)
+    && (!range.start || date >= range.start)
+    && (!range.end || date <= range.end)
+    && (filters.approval === 'all' || status === filters.approval);
+}
+
+function renderWeekCalendar({ state, currentUser, startDate, today, filters }) {
+  const dates = Array.from({ length: 7 }, (_, index) => shiftDate(startDate, index));
+  const range = filterDateRange({ ...filters, calendarStart: startDate, today });
+  const records = state.records.filter((record) => {
+    const user = userById(state, record.userId);
+    return (currentUser.role !== 'ドライバー' || record.userId === currentUser.id)
+      && matchesRecordFilters({
+        ...record,
+        name: user?.name || '',
+        status: recordStatus(record)
+      }, filters, range);
+  });
+  const schedules = (state.workSchedules || []).filter((schedule) => {
+    const user = userById(state, schedule.userId);
+    return (currentUser.role !== 'ドライバー' || schedule.userId === currentUser.id)
+      && (!filters.query || (user?.name || '').toLocaleLowerCase('ja').includes(filters.query.trim().toLocaleLowerCase('ja')))
+      && (!filters.driverId || schedule.userId === filters.driverId)
+      && (!range.start || schedule.date >= range.start)
+      && (!range.end || schedule.date <= range.end);
+  });
+  const days = dates.map((date) => {
+    const userIds = new Set([
+      ...records.filter((record) => record.date === date).map((record) => record.userId),
+      ...schedules.filter((schedule) => schedule.date === date).map((schedule) => schedule.userId)
+    ]);
+    const activities = [...userIds].map((userId) => {
+      const user = userById(state, userId);
+      const schedule = schedules.find((item) => item.userId === userId && item.date === date);
+      const dayRecords = records.filter((record) => record.userId === userId && record.date === date);
+      const plannedTime = schedule?.start && schedule?.end
+        ? `${escapeHtml(schedule.start)}–${escapeHtml(schedule.end)}`
+        : schedule ? '時刻未設定' : '';
+      const actualTimes = dayRecords.map((record) => {
+        const comparison = schedule && scheduleComparison(schedule, record);
+        const outcome = comparison
+          ? comparison.onTime
+            ? '<span class="calendar-comparison">予定通り（±15分以内）</span>'
+            : `<div class="calendar-deltas" aria-label="実績と予定の差（実績 − 予定）"><span>始<strong class="${comparison.startDelta > 0 ? 'late' : 'early'}">${formatScheduleDelta(comparison.startDelta)}</strong></span><span>終<strong class="${comparison.endDelta > 0 ? 'late' : 'early'}">${formatScheduleDelta(comparison.endDelta)}</strong></span></div>`
+          : '';
+        return `<div class="calendar-actual"><span class="calendar-kind">実績</span><span class="calendar-time">${escapeHtml(record.start)}–${escapeHtml(record.end)}</span>${outcome}</div>`;
+      }).join('');
+      const status = dayRecords.length
+        ? `<span class="calendar-status">${dayRecords.map((record) => escapeHtml(STATUS_LABELS[recordStatus(record)] || STATUS_LABELS.pending)).join('・')}</span>`
+        : '';
+      return `<article class="calendar-activity"><div class="calendar-person">${escapeHtml(user?.name || '削除済みユーザー')}${status}</div>${schedule ? `<div class="calendar-planned"><span class="calendar-kind">予定</span><span class="calendar-time">${plannedTime}</span></div>` : ''}${actualTimes}</article>`;
+    }).join('');
+    const dayLabel = formatDate(date);
+    return `<section class="week-day ${date === today ? 'is-today' : ''}" aria-label="${escapeHtml(dayLabel)}"><div class="week-day-heading"><strong>${escapeHtml(dayLabel)}</strong>${date === today ? '<span class="today-marker">今日</span>' : ''}</div><div class="week-day-activities">${activities || '<span class="calendar-no-activity">条件に一致する予定・実績なし</span>'}</div></section>`;
+  }).join('');
+  return { dates, days };
+}
+
+export function renderRecords({ state, currentUser, templates, today }) {
   const drivers = state.users.filter((user) => user.role === 'ドライバー');
   const driverFilter = currentUser.role === '管理者'
     ? `<select id="driver-filter" aria-label="ドライバーで絞り込み"><option value="all">全ドライバー</option>${drivers.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)}</option>`).join('')}</select>`
@@ -85,7 +161,7 @@ export function renderRecords({ state, currentUser, templates }) {
         : '<span class="badge warn">比較不可</span>'
       : '—';
     const scheduleDelta = comparison && !comparison.onTime
-      ? `<div class="schedule-delta">開始 ${formatScheduleDelta(comparison.startDelta)} / 終了 ${formatScheduleDelta(comparison.endDelta)}<br>（実績 − 予定）</div>`
+      ? `<div class="schedule-deltas" aria-label="実績 − 予定"><span>始<strong class="${comparison.startDelta > 0 ? 'late' : 'early'}">${formatScheduleDelta(comparison.startDelta)}</strong></span><span>終<strong class="${comparison.endDelta > 0 ? 'late' : 'early'}">${formatScheduleDelta(comparison.endDelta)}</strong></span></div>`
       : '—';
     const actions = [
       canManageRecord(currentUser, record)
@@ -104,17 +180,27 @@ export function renderRecords({ state, currentUser, templates }) {
   const auditRows = auditEntries.map((event) => {
     const eventDate = new Date(event.createdAt);
     const dateTime = Number.isNaN(eventDate.getTime()) ? '日時不明' : new Intl.DateTimeFormat('ja-JP', { dateStyle: 'short', timeStyle: 'short' }).format(eventDate);
-    return `<tr><td>${escapeHtml(dateTime)}</td><td>${escapeHtml(event.recordUserName)}<div class="panel-meta">${escapeHtml(event.before?.date || event.after?.date || '')}</div></td><td>${escapeHtml(event.action)}</td><td>${escapeHtml(event.actorName)}</td><td>${auditDetails(event)}</td></tr>`;
+    const snapshot = event.after || event.before;
+    return `<tr data-audit-row data-user-id="${escapeHtml(event.recordUserId)}" data-name="${escapeHtml(event.recordUserName || '')}" data-date="${escapeHtml(snapshot?.date || '')}" data-status="${escapeHtml(snapshot?.status || 'pending')}"><td>${escapeHtml(dateTime)}</td><td>${escapeHtml(event.recordUserName)}<div class="panel-meta">${escapeHtml(snapshot?.date || '')}</div></td><td>${escapeHtml(event.action)}</td><td>${escapeHtml(event.actorName)}</td><td>${auditDetails(event)}</td></tr>`;
   }).join('');
   return renderTemplate(templates, 'records', {
     RECORD_COUNT: rows.length,
     DRIVER_FILTER: driverFilter,
+    CALENDAR_DAYS: renderWeekCalendar({
+      state,
+      currentUser,
+      startDate: shiftDate(today, -6),
+      today,
+      filters: { query: '', driverId: '', dateFilter: 'week', dateFrom: '', dateTo: '', approval: 'all' }
+    }).days,
+    CALENDAR_RANGE: `${formatDate(shiftDate(today, -6))} ～ ${formatDate(today)}`,
     RECORD_ROWS: tableRows,
     RECORD_ACCESS_NOTE: currentUser.role === '管理者' ? '全ユーザーの記録を編集・審査できます。' : '編集・削除できるのは自分の記録のみです。',
     EMPTY_RECORDS: rows.length ? '' : '<div class="empty"><strong>記録はまだありません</strong>勤務実績を入力するとここに表示されます。</div>',
     AUDIT_COUNT: auditEntries.length,
     AUDIT_ROWS: auditRows,
-    EMPTY_AUDIT: auditEntries.length ? '' : '<div class="empty">変更履歴はまだありません</div>'
+    EMPTY_AUDIT: auditEntries.length ? '' : '<div class="empty">変更履歴はまだありません</div>',
+    AUDIT_PANEL: currentUser.role === '管理者' ? `<article class="panel audit-panel"><div class="panel-heading"><h2 class="panel-title">変更履歴・審査履歴</h2><span class="panel-meta" id="audit-count">${auditEntries.length} 件</span></div><div class="table-wrap" data-audit-pagination><table><thead><tr><th>日時</th><th>勤務日・ドライバー</th><th>操作</th><th>実行者</th><th>内容</th></tr></thead><tbody>${auditRows}</tbody></table>${auditEntries.length ? '' : '<div class="empty">変更履歴はまだありません</div>'}</div><div class="empty" id="audit-filter-empty" hidden>条件に一致する履歴がありません</div></article>` : ''
   });
 }
 
@@ -125,26 +211,63 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
   const dateFrom = document.getElementById('date-from');
   const dateTo = document.getElementById('date-to');
   const approvalFilter = document.getElementById('approval-filter');
+  const calendar = document.getElementById('week-calendar');
+  const calendarRange = document.getElementById('calendar-range');
+  const filters = () => ({
+    query: search.value,
+    driverId: driverFilter?.value === 'all' ? '' : driverFilter?.value || '',
+    dateFilter: dateFilter.value,
+    dateFrom: dateFrom.value,
+    dateTo: dateTo.value,
+    approval: approvalFilter.value
+  });
+  let calendarStart = shiftDate(today, -6);
+  const updateCalendar = () => {
+    const currentFilters = filters();
+    const { dates, days } = renderWeekCalendar({
+      state,
+      currentUser,
+      startDate: calendarStart,
+      today,
+      filters: currentFilters
+    });
+    calendar.innerHTML = days;
+    calendarRange.textContent = `${formatDate(dates[0])} ～ ${formatDate(dates[6])}`;
+  };
+  document.getElementById('calendar-previous').addEventListener('click', () => {
+    calendarStart = shiftDate(calendarStart, -7);
+    filter();
+  });
+  document.getElementById('calendar-next').addEventListener('click', () => {
+    calendarStart = shiftDate(calendarStart, 7);
+    filter();
+  });
+  document.getElementById('calendar-latest').addEventListener('click', () => {
+    calendarStart = shiftDate(today, -6);
+    filter();
+  });
+  updateCalendar();
   const editDialog = document.getElementById('record-edit-dialog');
   const editForm = document.getElementById('record-edit-form');
   const canManage = (record) => record && canManageRecord(currentUser, record);
   const recordPagination = setupPagination(document.querySelector('[data-record-pagination]'), '[data-record-row]');
-  setupPagination(document.querySelector('[data-audit-pagination]'), 'tbody tr');
+  const auditContainer = document.querySelector('[data-audit-pagination]');
+  const auditPagination = setupPagination(auditContainer, '[data-audit-row]');
   document.querySelectorAll('[data-close-edit]').forEach((button) => button.addEventListener('click', () => editDialog.close()));
   const filter = () => {
     const query = search.value.trim().toLocaleLowerCase('ja');
-    const todayOnly = dateFilter.value === 'today';
     const invalidDateRange = dateFrom.value && dateTo.value && dateFrom.value > dateTo.value;
+    const currentFilters = filters();
+    const range = filterDateRange({ ...currentFilters, calendarStart, today });
     let visible = 0;
     document.getElementById('date-filter-error').hidden = !invalidDateRange;
     document.querySelectorAll('[data-record-row]').forEach((row) => {
-      const matches = row.dataset.name.toLocaleLowerCase('ja').includes(query)
-        && (!driverFilter || driverFilter.value === 'all' || row.dataset.userId === driverFilter.value)
-        && (!todayOnly || row.dataset.date === today)
-        && (!dateFrom.value || row.dataset.date >= dateFrom.value)
-        && (!dateTo.value || row.dataset.date <= dateTo.value)
-        && !invalidDateRange
-        && (approvalFilter.value === 'all' || row.dataset.status === approvalFilter.value);
+      const matches = !invalidDateRange && matchesRecordFilters({
+        userId: row.dataset.userId,
+        name: row.dataset.name,
+        date: row.dataset.date,
+        status: row.dataset.status
+      }, currentFilters, range);
       row.dataset.paginationFiltered = String(!matches);
       if (matches) visible++;
     });
@@ -152,11 +275,31 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
     recordPagination.refresh(true);
     const empty = document.getElementById('filter-empty');
     if (empty) empty.hidden = visible > 0 || state.records.length === 0;
+    if (auditContainer) {
+      let auditVisible = 0;
+      auditContainer.querySelectorAll('[data-audit-row]').forEach((row) => {
+        const matches = !invalidDateRange && matchesRecordFilters({
+          userId: row.dataset.userId,
+          name: row.dataset.name,
+          date: row.dataset.date,
+          status: row.dataset.status
+        }, currentFilters, range);
+        row.dataset.paginationFiltered = String(!matches);
+        if (matches) auditVisible++;
+      });
+      document.getElementById('audit-count').textContent = `${auditVisible} 件`;
+      auditPagination.refresh(true);
+      document.getElementById('audit-filter-empty').hidden = auditVisible > 0 || !auditContainer.querySelector('[data-audit-row]');
+    }
+    updateCalendar();
   };
   filter();
   search.addEventListener('input', filter);
   driverFilter?.addEventListener('change', filter);
-  dateFilter.addEventListener('change', filter);
+  dateFilter.addEventListener('change', () => {
+    if (dateFilter.value === 'week') calendarStart = shiftDate(today, -6);
+    filter();
+  });
   dateFrom.addEventListener('input', filter);
   dateTo.addEventListener('input', filter);
   dateFrom.addEventListener('change', filter);
