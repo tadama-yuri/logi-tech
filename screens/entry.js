@@ -1,7 +1,6 @@
-import { escapeHtml, formatDate, formatHours, localDateString, logRecordChange, minutesBetween, recordStats, scheduleForDate } from '../shared/data.js';
+import { escapeHtml, formatHours, localDateString, logRecordChange, minutesBetween, recordStats, scheduleForDate } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
 import { refreshShiftReminder } from '../shared/layout.js';
-import { setupPagination } from '../shared/pagination.js';
 import { getSupabaseClient, loadRemoteState } from '../shared/supabase.js';
 
 function renderScheduleControls({ state, currentUser, today, remoteMode }) {
@@ -9,13 +8,6 @@ function renderScheduleControls({ state, currentUser, today, remoteMode }) {
 
   const drivers = state.users.filter((user) => user.role === 'ドライバー');
   const driverOptions = drivers.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)}</option>`).join('');
-  const scheduleRows = [...(state.workSchedules || [])]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .map((schedule) => {
-      const driver = drivers.find((user) => user.id === schedule.userId);
-      if (!driver) return '';
-      return `<div class="schedule-row"><div class="schedule-row-info"><span class="schedule-row-date">${escapeHtml(driver.name)} · ${escapeHtml(formatDate(schedule.date))}</span><span class="schedule-row-status">${schedule.start && schedule.end ? `${escapeHtml(schedule.start)}–${escapeHtml(schedule.end)}` : '時刻未設定'}</span></div><button class="button danger small" type="button" data-delete-schedule="${escapeHtml(schedule.userId)}" data-schedule-date="${escapeHtml(schedule.date)}">削除</button></div>`;
-    }).join('');
   const tableUnavailable = remoteMode && state.workSchedulesAvailable === false;
   const timesUnavailable = remoteMode && state.workSchedulesAvailable !== false && state.workScheduleTimesAvailable === false;
   const setupWarning = tableUnavailable
@@ -24,7 +16,7 @@ function renderScheduleControls({ state, currentUser, today, remoteMode }) {
       ? '<p class="schedule-setup-warning" role="alert">勤務予定の時刻列がありません。既存の予定を保ったまま時刻列を追加するため、Supabase の SQL Editor で <code>supabase/schedule-migration.sql</code> を実行してください。</p>'
       : '';
   const disabled = tableUnavailable || timesUnavailable;
-  return `<section class="panel schedule-panel" aria-labelledby="schedule-title"><div class="panel-heading"><div><div class="eyebrow">WORK SCHEDULE</div><h2 class="panel-title" id="schedule-title">勤務予定を登録</h2></div></div>${setupWarning}<p class="subtitle">ドライバー・勤務日・予定時刻を登録します。同じドライバーと勤務日の予定を再登録すると時刻を更新できます。</p><form id="schedule-form" class="schedule-form"><div class="field"><label for="schedule-driver">ドライバー</label><select id="schedule-driver" name="userId" required ${disabled ? 'disabled' : ''}>${driverOptions || '<option value="">ドライバーがいません</option>'}</select></div><div class="field"><label for="schedule-date">勤務予定日</label><input id="schedule-date" name="date" type="date" value="${escapeHtml(today)}" required ${disabled ? 'disabled' : ''}></div><div class="field"><label for="schedule-start">予定開始時刻</label><input id="schedule-start" name="start" type="time" required ${disabled ? 'disabled' : ''}></div><div class="field"><label for="schedule-end">予定終了時刻</label><input id="schedule-end" name="end" type="time" required ${disabled ? 'disabled' : ''}></div><button class="button primary" type="submit" ${drivers.length && !disabled ? '' : 'disabled'}>予定を登録・更新</button></form><div class="schedule-list" data-schedule-pagination>${scheduleRows || '<div class="empty">勤務予定日はまだありません</div>'}</div></section>`;
+  return `<section class="panel schedule-panel" aria-labelledby="schedule-title"><div class="panel-heading"><div><div class="eyebrow">WORK SCHEDULE</div><h2 class="panel-title" id="schedule-title">勤務予定を登録</h2></div></div>${setupWarning}<p class="subtitle">ドライバー・勤務日・予定時刻を登録します。同じドライバーと勤務日の予定を再登録すると時刻を更新できます。登録済みの予定は「記録を確認」タブで確認できます。</p><form id="schedule-form" class="schedule-form"><div class="field"><label for="schedule-driver">ドライバー</label><select id="schedule-driver" name="userId" required ${disabled ? 'disabled' : ''}>${driverOptions || '<option value="">ドライバーがいません</option>'}</select></div><div class="field"><label for="schedule-date">勤務予定日</label><input id="schedule-date" name="date" type="date" value="${escapeHtml(today)}" required ${disabled ? 'disabled' : ''}></div><div class="field"><label for="schedule-start">予定開始時刻</label><input id="schedule-start" name="start" type="time" required ${disabled ? 'disabled' : ''}></div><div class="field"><label for="schedule-end">予定終了時刻</label><input id="schedule-end" name="end" type="time" required ${disabled ? 'disabled' : ''}></div><button class="button primary" type="submit" ${drivers.length && !disabled ? '' : 'disabled'}>予定を登録・更新</button></form></section>`;
 }
 
 export function renderEntry({ state, currentUser, today, templates, remoteMode }) {
@@ -89,7 +81,6 @@ function confirmRecordSave(entry, stats, duplicates, driverName) {
 export function bindEntry({ state, currentUser, persist, navigate, showToast, render, remoteMode }) {
   if (currentUser.role === '管理者') {
     const scheduleForm = document.getElementById('schedule-form');
-    setupPagination(document.querySelector('[data-schedule-pagination]'), '.schedule-row');
     const reloadRemoteState = async () => {
       const latestState = await loadRemoteState();
       Object.keys(state).forEach((key) => delete state[key]);
@@ -133,27 +124,6 @@ export function bindEntry({ state, currentUser, persist, navigate, showToast, re
       }
     });
 
-    document.querySelectorAll('[data-delete-schedule]').forEach((button) => button.addEventListener('click', async () => {
-      const userId = button.dataset.deleteSchedule;
-      const date = button.dataset.scheduleDate;
-      if (!window.confirm(`${date} の勤務予定を削除しますか？`)) return;
-      try {
-        if (remoteMode) {
-          const client = await getSupabaseClient();
-          const { error } = await client.from('work_schedules').delete().eq('user_id', userId).eq('work_date', date);
-          if (error) throw error;
-          await reloadRemoteState();
-        } else {
-          state.workSchedules = (state.workSchedules || []).filter((item) => item.userId !== userId || item.date !== date);
-          if (!await persist()) return;
-        }
-        render();
-        showToast('勤務予定を削除しました');
-      } catch (error) {
-        console.error('勤務予定を削除できませんでした。', error);
-        showToast(`勤務予定の削除に失敗しました: ${error.message}`);
-      }
-    }));
   }
 
   const recordDate = document.getElementById('record-date');

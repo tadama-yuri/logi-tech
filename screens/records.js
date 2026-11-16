@@ -1,6 +1,7 @@
 import { escapeHtml, formatDate, formatHours, localDateString, logRecordChange, recordStats, scheduleTimeDelta, userById } from '../shared/data.js';
 import { renderTemplate } from '../shared/templates.js';
 import { setupPagination } from '../shared/pagination.js';
+import { getSupabaseClient, loadRemoteState } from '../shared/supabase.js';
 
 const STATUS_LABELS = { pending: '未承認', approved: '承認済み', returned: '要修正' };
 const RECORD_FIELDS = [
@@ -146,6 +147,19 @@ export function renderRecords({ state, currentUser, templates, today }) {
   const rows = [...state.records]
     .filter((record) => currentUser.role === 'ドライバー' ? record.userId === currentUser.id : true)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+  const schedules = [...(state.workSchedules || [])]
+    .filter((schedule) => currentUser.role === 'ドライバー' ? schedule.userId === currentUser.id : true)
+    .sort((a, b) => b.date.localeCompare(a.date) || String(a.userId).localeCompare(String(b.userId)));
+  const scheduleRows = schedules.map((schedule) => {
+    const user = userById(state, schedule.userId);
+    const time = schedule.start && schedule.end
+      ? `${escapeHtml(schedule.start)}–${escapeHtml(schedule.end)}`
+      : '時刻未設定';
+    const deleteAction = currentUser.role === '管理者'
+      ? `<button class="button danger small" type="button" data-delete-schedule="${escapeHtml(schedule.userId)}" data-schedule-date="${escapeHtml(schedule.date)}">削除</button>`
+      : '';
+    return `<div class="schedule-row"><div class="schedule-row-info"><span class="schedule-row-date">${escapeHtml(user?.name || '削除済みユーザー')} · ${escapeHtml(formatDate(schedule.date))}</span><span class="schedule-row-status">${time}</span></div>${deleteAction}</div>`;
+  }).join('');
   const tableRows = rows.map((record) => {
     const user = userById(state, record.userId);
     const stats = recordStats(record);
@@ -186,6 +200,9 @@ export function renderRecords({ state, currentUser, templates, today }) {
   return renderTemplate(templates, 'records', {
     RECORD_COUNT: rows.length,
     DRIVER_FILTER: driverFilter,
+    SCHEDULE_COUNT: schedules.length,
+    SCHEDULE_ROWS: scheduleRows,
+    EMPTY_SCHEDULES: schedules.length ? '' : '<div class="empty">勤務予定はまだありません</div>',
     CALENDAR_DAYS: renderWeekCalendar({
       state,
       currentUser,
@@ -204,7 +221,7 @@ export function renderRecords({ state, currentUser, templates, today }) {
   });
 }
 
-export function bindRecords({ state, currentUser, today, persist, render, showToast }) {
+export function bindRecords({ state, currentUser, today, persist, render, showToast, remoteMode }) {
   const search = document.getElementById('record-search');
   const driverFilter = document.getElementById('driver-filter');
   const dateFilter = document.getElementById('date-filter');
@@ -253,7 +270,32 @@ export function bindRecords({ state, currentUser, today, persist, render, showTo
   const recordPagination = setupPagination(document.querySelector('[data-record-pagination]'), '[data-record-row]');
   const auditContainer = document.querySelector('[data-audit-pagination]');
   const auditPagination = setupPagination(auditContainer, '[data-audit-row]');
+  setupPagination(document.querySelector('[data-schedule-pagination]'), '.schedule-row');
   document.querySelectorAll('[data-close-edit]').forEach((button) => button.addEventListener('click', () => editDialog.close()));
+  document.querySelectorAll('[data-delete-schedule]').forEach((button) => button.addEventListener('click', async () => {
+    if (currentUser.role !== '管理者') return showToast('勤務予定を削除する権限がありません');
+    const userId = button.dataset.deleteSchedule;
+    const date = button.dataset.scheduleDate;
+    if (!window.confirm(`${date} の勤務予定を削除しますか？`)) return;
+    try {
+      if (remoteMode) {
+        const client = await getSupabaseClient();
+        const { error } = await client.from('work_schedules').delete().eq('user_id', userId).eq('work_date', date);
+        if (error) throw error;
+        const latestState = await loadRemoteState();
+        Object.keys(state).forEach((key) => delete state[key]);
+        Object.assign(state, latestState);
+      } else {
+        state.workSchedules = (state.workSchedules || []).filter((item) => item.userId !== userId || item.date !== date);
+        if (!await persist()) return;
+      }
+      render();
+      showToast('勤務予定を削除しました');
+    } catch (error) {
+      console.error('勤務予定を削除できませんでした。', error);
+      showToast(`勤務予定の削除に失敗しました: ${error.message}`);
+    }
+  }));
   const filter = () => {
     const query = search.value.trim().toLocaleLowerCase('ja');
     const invalidDateRange = dateFrom.value && dateTo.value && dateFrom.value > dateTo.value;
